@@ -12,15 +12,17 @@ The codebase is divided into three strictly separated layers. Each layer has a s
 ┌─────────────────────────────────────────────────────┐
 │                   React Layer                        │
 │  App.tsx · TelemetryPanel · ControlsPanel            │
-│  Owns: app state, telemetry display, user actions    │
+│  NodeInspector · ValidationPanel                     │
+│  Owns: app state, UI dashboards, config forms        │
 ├─────────────────────────────────────────────────────┤
 │                   Phaser Layer                       │
 │  PhaserHost.tsx · BuildScene · isoMath               │
 │  Owns: rendering, camera, input, visual feedback     │
 ├─────────────────────────────────────────────────────┤
 │                 Simulation Layer                     │
-│  SimEngine · nodes · graph · telemetry · schemas     │
-│  Owns: game logic, tick loop, traffic physics        │
+│  SimEngine · nodes · graph · telemetry               │
+│  topology.ts (validation) · schemas                  │
+│  Owns: game logic, tick loop, validation, traffic    │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -53,16 +55,17 @@ The codebase is divided into three strictly separated layers. Each layer has a s
 │                                                          │
 │  On every frame:                                         │
 │  4. engine.step(dt)                                      │
-│  5. onSnapshot(engine.getSnapshot())  ──────────────┐    │
+│  5. drawEdges(engine.getSnapshot()) -> edgeRenderer       │
+│  6. onSnapshot(engine.getSnapshot())  ──────────────┐    │
 └──────────────────────────────────────────────────────┼────┘
                                                        │
                                                        ▼
 ┌──────────────────────────────────────────────────────────┐
 │                       App.tsx (React)                     │
 │                                                          │
-│  6. computeTelemetry(snapshot) → TelemetrySnapshot        │
-│  7. setTelemetry(result)                                 │
-│  8. <TelemetryPanel> re-renders with new data             │
+│  7. computeTelemetry(snapshot) → TelemetrySnapshot       │
+│  8. setTelemetry(result), setValidation(snap.validation) │
+│  9. <TelemetryPanel> and <ValidationPanel> update        │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -74,28 +77,30 @@ The codebase is divided into three strictly separated layers. Each layer has a s
 
 | File | Responsibility |
 |------|---------------|
-| `App.tsx` | Creates `SimEngine`, manages telemetry state, wires callbacks between Phaser and UI panels. Flexbox layout with canvas left, sidebar right. |
 | `ui/TelemetryPanel.tsx` | Renders live metrics (RPS, latency, error rate, cost, etc.) from `TelemetrySnapshot`. Updates ~8 times/second via throttled React state. |
 | `ui/ControlsPanel.tsx` | Two buttons: "Load Level 1" (calls `engine.loadPreset()`) and "Reset" (calls `engine.reset()`). Signals Phaser to redraw via `redrawToken`. |
+| `ui/NodeInspector.tsx` | Form editing panel rendered when a node is selected. Dispatches config updates back to the `SimEngine`. |
+| `ui/ValidationPanel.tsx` | Dash rendering active validation alerts preventing ideal configuration. |
 
 ### Phaser Layer (`src/game/`)
 
 | File | Responsibility |
 |------|---------------|
 | `PhaserHost.tsx` | React component that mounts/destroys a `Phaser.Game` instance. Uses `Scale.RESIZE` so the canvas fills all available space. Bridges React → Phaser via scene data and a `redrawToken` ref. |
-| `scenes/BuildScene.ts` | The main Phaser scene. Draws the isometric grid, renders AWS icons on placed nodes, draws dependency edges, handles keybinds (1–6), left-click placement, right-drag camera pan, scroll zoom. Calls `engine.step(dt)` on every frame and pushes snapshots to React. |
+| `scenes/BuildScene.ts` | The main Phaser scene. Draws the isometric grid, renders AWS icons on placed nodes, draws dependency edges, handles keybinds (1–6), left-click placement/selection, right-drag camera pan, scroll zoom. Calls `engine.step(dt)` on every frame and pushes snapshots to React. |
 | `iso/isoMath.ts` | Pure math helpers: `gridToScreen()`, `screenToGrid()`, `inBounds()`. Also exports constants `TILE_W`, `TILE_H`, `GRID_SIZE`. Every visual position derives from these functions. |
+| `render/edgeRenderer.ts` | Functional implementation of L-shaped isometric orthogonal edge pathing with animated flow pulses. Has no internal state. |
 
 ### Simulation Layer (`src/sim/`)
 
 | File | Responsibility |
 |------|---------------|
 | `types.ts` | All domain types: `NodeKind`, `NodeConfig`, `NodeState`, `SimNode`, `Edge`, `SimSnapshot`, `TelemetrySnapshot`. |
-| `schemas.ts` | Zod schemas: `PlacementInputSchema` (validates node placement), `LevelPresetSchema` (validates presets), `SimSnapshotSchema` (validates snapshots). |
-| `engine/SimEngine.ts` | The core tick engine. Manages nodes/edges, processes `step(dt)` with traffic flow and physics, exposes `getSnapshot()`. See [Simulation Model](simulation-model.md) for details. |
+| `engine/SimEngine.ts` | The core tick engine. Manages nodes/edges/areas/validation, processes `step(dt)` with traffic flow and physics, exposes `getSnapshot()`. See [Simulation Model](simulation-model.md) for details. |
 | `model/nodes.ts` | `createNode()` factory with `defaultConfigFor()` per kind. Generates stable IDs. |
 | `model/graph.ts` | `deriveEdges()` — auto-wires dependency edges based on which node kinds exist. Rebuilt on every topology change. |
-| `presets/level1.ts` | The Level 1 starter architecture (LB, API, Cache, DB, Queue, Worker). Validated against `LevelPresetSchema` at module load. |
+| `validation/topology.ts`| `validateTopology()` — Checks structure for isolated nodes, disjoint clusters, missing API gateways, and missing VPC areas. Assessed efficiently. |
+| `presets/level1.ts` | The Level 1 starter architecture (LB, API, Cache, DB, Queue, Worker) bundled with predefined public/private VPC areas. Validated against `LevelPresetSchema` at module load. |
 | `telemetry/computeTelemetry.ts` | Pure function: `SimSnapshot → TelemetrySnapshot`. Aggregates per-node metrics into dashboard values. |
 
 ---

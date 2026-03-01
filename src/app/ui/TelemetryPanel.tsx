@@ -1,15 +1,52 @@
-// ── Telemetry Panel ─────────────────────────────────────────────────────
+// ── Telemetry Panel — Monitoring Dashboard ──────────────────────────────
 import type { TelemetrySnapshot } from '../../sim/types';
 
 interface Props {
     telemetry: TelemetrySnapshot;
 }
 
-function Metric({ label, value, unit = '' }: { label: string; value: string | number; unit?: string }) {
+type HealthLevel = 'ok' | 'warn' | 'crit';
+
+function getHealth(errorRatePct: number, p95ms: number): HealthLevel {
+    if (errorRatePct > 5 || p95ms > 200) return 'crit';
+    if (errorRatePct > 1 || p95ms > 100) return 'warn';
+    return 'ok';
+}
+
+const healthColors: Record<HealthLevel, string> = {
+    ok: '#5a9e6f',
+    warn: '#c49a3c',
+    crit: '#c0675a',
+};
+
+function Metric({
+    label,
+    value,
+    unit = '',
+    health,
+}: {
+    label: string;
+    value: string | number;
+    unit?: string;
+    health?: HealthLevel;
+}) {
     return (
         <div className="metric-row">
-            <span className="metric-label">{label}</span>
-            <span className="metric-value">
+            <span className="metric-label">
+                {health && (
+                    <span
+                        className="status-dot"
+                        style={{ backgroundColor: healthColors[health] }}
+                    />
+                )}
+                {label}
+            </span>
+            <span
+                className="metric-value"
+                style={
+                    health === 'crit' ? { color: '#c0675a' } : health === 'warn' ? { color: '#c49a3c' } : undefined
+                }
+            >
                 {value}
                 {unit && <span className="metric-unit"> {unit}</span>}
             </span>
@@ -19,21 +56,27 @@ function Metric({ label, value, unit = '' }: { label: string; value: string | nu
 
 export function TelemetryPanel({ telemetry }: Props) {
     const t = telemetry;
+    const health = getHealth(t.errorRatePct, t.p95ms);
+
     return (
         <div className="panel telemetry-panel">
-            <h3 className="panel-title">📊 Telemetry</h3>
+            <h3 className="panel-title">Telemetry</h3>
             <Metric label="Sim Time" value={t.simTimeSec.toFixed(1)} unit="s" />
-            <Metric label="Input RPS" value={t.inputRps} />
-            <Metric label="Success RPS" value={t.successRps} />
-            <Metric label="Error RPS" value={t.errorRps} />
+            <div className="metric-divider" />
+            <Metric label="Input RPS" value={t.inputRps} health={health} />
+            <Metric label="Success RPS" value={t.successRps} health={health} />
+            <Metric label="Error RPS" value={t.errorRps} health={health} />
             <Metric
                 label="Error Rate"
                 value={t.errorRatePct.toFixed(1)}
                 unit="%"
+                health={health}
             />
-            <Metric label="p95 Latency" value={t.p95ms.toFixed(1)} unit="ms" />
+            <div className="metric-divider" />
+            <Metric label="p95 Latency" value={t.p95ms.toFixed(1)} unit="ms" health={health} />
             <Metric label="DB Conns" value={t.dbConns} />
             <Metric label="Queue Depth" value={t.queueDepth.toFixed(0)} />
+            <div className="metric-divider" />
             <Metric label="Cost / min" value={`$${t.costPerMin.toFixed(2)}`} />
         </div>
     );

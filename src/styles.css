@@ -1,4 +1,4 @@
-/* ── DevOps Simulator — Global Styles ────────────────────────────────── */
+/* ── DevOps Simulator — Visual Overhaul ──────────────────────────────── */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -16,8 +16,8 @@ body,
 #root {
   height: 100%;
   overflow: hidden;
-  background: #0a0a14;
-  color: #e0e0e8;
+  background: #080b14;
+  color: #c8cce0;
   font-family: 'Inter', system-ui, sans-serif;
 }
 
@@ -31,26 +31,25 @@ body,
 .app-header {
   display: flex;
   align-items: baseline;
-  gap: 16px;
-  padding: 12px 20px;
-  background: linear-gradient(135deg, #0f0f22 0%, #141428 100%);
-  border-bottom: 1px solid #1e1e3a;
+  gap: 14px;
+  padding: 10px 18px;
+  background: #0a0e18;
+  border-bottom: 1px solid #1a1e2e;
 }
 
 .app-header h1 {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
   letter-spacing: 0.5px;
-  background: linear-gradient(90deg, #4fc3f7, #81c784);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #7a8eaa;
 }
 
 .header-sub {
-  font-size: 12px;
-  color: #6a6a8a;
+  font-size: 11px;
+  color: #44506a;
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .app-main {
@@ -66,7 +65,7 @@ body,
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  background: #0d0d1a;
+  background: #080b14;
   min-width: 0;
   overflow: hidden;
   position: relative;
@@ -78,118 +77,193 @@ body,
 
 /* ── Sidebar ─────────────────────────────────────────────────────────── */
 .sidebar {
-  width: 260px;
+  width: 240px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 0;
-  background: #0f0f22;
-  border-left: 1px solid #1e1e3a;
+  background: #0c0f1a;
+  border-left: 1px solid #1a1e2e;
   overflow-y: auto;
 }
 
 /* ── Panels ──────────────────────────────────────────────────────────── */
 .panel {
-  padding: 14px 16px;
-  border-bottom: 1px solid #1e1e3a;
+  padding: 12px 14px;
+  border-bottom: 1px solid #151a28;
 }
 
 .panel-title {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #8888aa;
+  letter-spacing: 1.5px;
+  color: #44506a;
   margin-bottom: 10px;
 }
 
 /* ── Telemetry ───────────────────────────────────────────────────────── */
+.telemetry-panel {
+  padding-bottom: 14px;
+}
+
 .metric-row {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   padding: 3px 0;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .metric-label {
-  color: #8888aa;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #556680;
   font-weight: 500;
+  font-size: 11px;
 }
 
 .metric-value {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  color: #e0e0e8;
+  color: #b0b8d0;
 }
 
 .metric-unit {
-  font-size: 10px;
-  color: #6a6a8a;
+  font-size: 9px;
+  color: #44506a;
+}
+
+.metric-divider {
+  height: 1px;
+  background: #151a28;
+  margin: 6px 0;
+}
+
+/* ── Status dot ──────────────────────────────────────────────────────── */
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 /* ── Controls ────────────────────────────────────────────────────────── */
 .controls-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .btn {
   display: block;
   width: 100%;
-  padding: 8px 12px;
+  padding: 7px 10px;
   border: none;
-  border-radius: 6px;
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition: all 0.15s ease;
 }
 
 .btn:active {
   transform: scale(0.97);
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #4fc3f7, #29b6f6);
-  color: #0a0a14;
+.btn-ghost {
+  background: transparent;
+  border: 1px solid #1e2438;
+  color: #6a7a9a;
 }
 
-.btn-primary:hover {
-  background: linear-gradient(135deg, #81d4fa, #4fc3f7);
+.btn-ghost:hover {
+  background: #121828;
+  border-color: #2a3a5c;
+  color: #8a9aba;
 }
 
-.btn-danger {
-  background: linear-gradient(135deg, #e57373, #ef5350);
-  color: #0a0a14;
+.btn-warm {
+  border-color: #2a1e1e;
+  color: #8a6a6a;
 }
 
-.btn-danger:hover {
-  background: linear-gradient(135deg, #ef9a9a, #e57373);
+.btn-warm:hover {
+  background: #1a1214;
+  border-color: #3a2a2a;
+  color: #aa7a7a;
 }
 
 /* ── Keybinds ────────────────────────────────────────────────────────── */
 .keybind-panel {
-  font-size: 12px;
-  color: #8888aa;
-  line-height: 1.8;
+  font-size: 11px;
+  color: #556680;
 }
 
 .keybind-list {
-  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.keybind-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.keybind-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #6a7a9a;
+  letter-spacing: 0.5px;
 }
 
 kbd {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: #1a1a30;
-  border: 1px solid #2a2a4a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  background: #10141e;
+  border: 1px solid #1e2438;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #6a7a9a;
+  flex-shrink: 0;
+}
+
+/* ── Inspector ───────────────────────────────────────────────────────── */
+.inspector-sidebar {
+  border-left: 1px solid #1a233a;
+  margin-left: 0;
+}
+
+.inspector-input {
+  background: #10141e;
+  border: 1px solid #2a3a5c;
+  color: #4fc3f7;
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #ccccdd;
-  margin-right: 2px;
+  padding: 4px 6px;
+  border-radius: 3px;
+  width: 60px;
+  text-align: right;
+  transition: border-color 0.15s ease;
+}
+
+.inspector-input:focus {
+  outline: none;
+  border-color: #4fc3f7;
+}
+
+.inspector-input::-webkit-outer-spin-button,
+.inspector-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
