@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
-import type { SimNode, NodeConfig } from '../../sim/types';
+import type { SimNode, NodeConfig, NodeBehaviorConfig } from '../../sim/types';
+import { ConfigEditor } from './ConfigEditor';
+
+export type InspectorTab = 'stats' | 'config';
 
 interface Props {
     node: SimNode;
+    areaLabel: string | null;
+    activeTab: InspectorTab;
+    onTabChange: (tab: InspectorTab) => void;
     onUpdateConfig: (nodeId: string, patch: Partial<NodeConfig>) => void;
+    onUpdateBehavior: (nodeId: string, patch: Partial<NodeBehaviorConfig>) => void;
+    onUpdateScript: (nodeId: string, scriptText: string) => boolean;
     onClose: () => void;
 }
 
@@ -64,7 +72,16 @@ function ConfigField({
     );
 }
 
-export function NodeInspector({ node, onUpdateConfig, onClose }: Props) {
+export function NodeInspector({
+    node,
+    areaLabel,
+    activeTab,
+    onTabChange,
+    onUpdateConfig,
+    onUpdateBehavior,
+    onUpdateScript,
+    onClose,
+}: Props) {
     const c = node.config;
     const s = node.state;
 
@@ -82,76 +99,103 @@ export function NodeInspector({ node, onUpdateConfig, onClose }: Props) {
             <div style={{ fontSize: '11px', color: '#6a7a9a', marginBottom: '10px', fontFamily: '"JetBrains Mono", monospace' }}>
                 ID: {node.id} &nbsp;|&nbsp; Pos: ({node.gx}, {node.gy})
             </div>
+            <div style={{ fontSize: '11px', color: '#6a7a9a', marginBottom: '10px' }}>
+                Area: <span style={{ color: '#8ca3d1' }}>{areaLabel ?? 'Unassigned'}</span>
+            </div>
 
-            <div className="metric-divider" />
-            <div style={{ fontSize: '10px', color: '#44506a', textTransform: 'uppercase', marginBottom: '6px' }}>Live Metrics</div>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                <button className="btn btn-ghost" style={{ padding: '4px 6px' }} onClick={() => onTabChange('stats')}>
+                    Stats
+                </button>
+                <button className="btn btn-ghost" style={{ padding: '4px 6px' }} onClick={() => onTabChange('config')}>
+                    Config
+                </button>
+                <span style={{ fontSize: '10px', color: '#6a7a9a', alignSelf: 'center' }}>Active: {activeTab}</span>
+            </div>
 
-            <Metric label="In RPS" value={s.inRps.toFixed(1)} />
-            <Metric label="Out RPS" value={s.outRps.toFixed(1)} />
-            <Metric label="Err RPS" value={s.errRps.toFixed(1)} />
-            <Metric label="p95 Latency" value={s.p95ms.toFixed(1)} unit="ms" />
-            <Metric label="Saturation" value={(s.saturation * 100).toFixed(1)} unit="%" />
-
-            {node.kind === 'DB' && <Metric label="DB Conns" value={s.dbConns} />}
-            {node.kind === 'QUEUE' && <Metric label="Queue Depth" value={s.queueDepth.toFixed(0)} />}
-
-            <div className="metric-divider" />
-            <div style={{ fontSize: '10px', color: '#44506a', textTransform: 'uppercase', marginBottom: '6px' }}>Configuration</div>
-
-            <ConfigField
-                label="Capacity RPS"
-                value={c.capacityRps}
-                min={0}
-                onChange={(v) => onUpdateConfig(node.id, { capacityRps: v })}
-            />
-            <ConfigField
-                label="Timeout ms"
-                value={c.timeoutMs}
-                min={0}
-                onChange={(v) => onUpdateConfig(node.id, { timeoutMs: v })}
-            />
-
-            {node.kind === 'CACHE' && (
+            {activeTab === 'stats' ? (
                 <>
-                    <ConfigField
-                        label="Hit Rate"
-                        value={c.hitRate}
-                        min={0}
-                        max={1}
-                        onChange={(v) => onUpdateConfig(node.id, { hitRate: v })}
-                    />
-                    <ConfigField
-                        label="TTL Sec"
-                        value={c.ttlSec}
-                        min={0}
-                        onChange={(v) => onUpdateConfig(node.id, { ttlSec: v })}
-                    />
+                    <div className="metric-divider" />
+                    <div style={{ fontSize: '10px', color: '#44506a', textTransform: 'uppercase', marginBottom: '6px' }}>Live Metrics</div>
+                    <Metric label="In RPS" value={s.inRps.toFixed(1)} />
+                    <Metric label="Out RPS" value={s.outRps.toFixed(1)} />
+                    <Metric label="Err RPS" value={s.errRps.toFixed(1)} />
+                    <Metric label="p95 Latency" value={s.p95ms.toFixed(1)} unit="ms" />
+                    <Metric label="Saturation" value={(s.saturation * 100).toFixed(1)} unit="%" />
+                    <Metric label="DB Conns" value={s.dbConns} />
+                    <Metric label="Queue Depth" value={s.queueDepth.toFixed(0)} />
                 </>
-            )}
-
-            {node.kind === 'DB' && (
-                <ConfigField
-                    label="Max Conns"
-                    value={c.maxConns}
-                    min={0}
-                    onChange={(v) => onUpdateConfig(node.id, { maxConns: v })}
-                />
-            )}
-
-            {node.kind === 'WORKER' && (
+            ) : (
                 <>
+                    <div className="metric-divider" />
+                    <div style={{ fontSize: '10px', color: '#44506a', textTransform: 'uppercase', marginBottom: '6px' }}>Runtime Config</div>
+
                     <ConfigField
-                        label="Throughput/W"
-                        value={c.throughputRps}
-                        min={1}
-                        onChange={(v) => onUpdateConfig(node.id, { throughputRps: v })}
+                        label="Capacity RPS"
+                        value={c.capacityRps}
+                        min={0}
+                        onChange={(v) => onUpdateConfig(node.id, { capacityRps: v })}
                     />
                     <ConfigField
-                        label="Concurrency"
-                        value={c.concurrency}
-                        min={1}
-                        max={100}
-                        onChange={(v) => onUpdateConfig(node.id, { concurrency: v })}
+                        label="Timeout ms"
+                        value={c.timeoutMs}
+                        min={0}
+                        onChange={(v) => onUpdateConfig(node.id, { timeoutMs: v })}
+                    />
+
+                    {node.kind === 'CACHE' && (
+                        <>
+                            <ConfigField
+                                label="Hit Rate"
+                                value={c.hitRate}
+                                min={0}
+                                max={1}
+                                onChange={(v) => onUpdateConfig(node.id, { hitRate: v })}
+                            />
+                            <ConfigField
+                                label="TTL Sec"
+                                value={c.ttlSec}
+                                min={0}
+                                onChange={(v) => onUpdateConfig(node.id, { ttlSec: v })}
+                            />
+                        </>
+                    )}
+
+                    {node.kind === 'DB' && (
+                        <ConfigField
+                            label="Max Conns"
+                            value={c.maxConns}
+                            min={0}
+                            onChange={(v) => onUpdateConfig(node.id, { maxConns: v })}
+                        />
+                    )}
+
+                    {node.kind === 'WORKER' && (
+                        <>
+                            <ConfigField
+                                label="Throughput/W"
+                                value={c.throughputRps}
+                                min={1}
+                                onChange={(v) => onUpdateConfig(node.id, { throughputRps: v })}
+                            />
+                            <ConfigField
+                                label="Concurrency"
+                                value={c.concurrency}
+                                min={1}
+                                max={100}
+                                onChange={(v) => onUpdateConfig(node.id, { concurrency: v })}
+                            />
+                        </>
+                    )}
+                    <div className="metric-divider" />
+                    <div style={{ fontSize: '10px', color: '#44506a', textTransform: 'uppercase', marginBottom: '6px' }}>
+                        Behavior Config
+                    </div>
+                    <ConfigEditor
+                        key={node.id}
+                        node={node}
+                        onUpdateBehavior={onUpdateBehavior}
+                        onUpdateScript={onUpdateScript}
                     />
                 </>
             )}

@@ -101,6 +101,50 @@ The `Edge` type already uses node IDs (`{ from: string, to: string }`), which ma
 
 ---
 
+## Editing Node Behavior (Config Script)
+
+Node graph behavior is now config-driven through `SimNode.behavior` and optional JSON script text.
+
+### Structured path
+
+Use engine APIs in this order:
+
+1. `updateNodeBehavior(nodeId, patch)` for typed updates
+2. `updateNodeScript(nodeId, jsonText)` for JSON-based UI editing
+3. `deriveEdges()` recomputes via `resolveConnections()`
+4. `validateTopology()` reruns automatically in the engine
+
+### Behavior model shape
+
+- `routing`:
+  - `mode` (`auto` or `explicit`)
+  - `targetNodeIds`
+  - `fallback`
+  - `queueWeightPct`
+  - `workerDbWritePct`
+- `dependencies`:
+  - `preferredNodeIds`
+- `policies`:
+  - `dropOnInvalidTargets`
+
+Keep behavior validation at the boundary (`schemas.ts`) and avoid per-tick deep parsing.
+
+---
+
+## Lifecycle and Submission Controls
+
+The engine exposes explicit lifecycle methods:
+
+- `submitArchitecture()`
+- `startTraffic()`
+- `pauseTraffic()`
+- `stopTraffic()`
+- `markDirty(reason)`
+
+Mutation operations (`add`, `move`, `remove`, config/script updates) should mark the architecture dirty and require re-submit semantics in the UI flow.
+
+---
+
 ## Adding New Validation Rules
 
 Topology validation runs on every state change. To add a new rule:
