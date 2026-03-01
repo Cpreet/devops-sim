@@ -1,8 +1,14 @@
 // ── Telemetry Panel — Monitoring Dashboard ──────────────────────────────
 import type { TelemetrySnapshot } from '../../sim/types';
+import type { ValidationSnapshot } from '../../sim/types';
 
 interface Props {
     telemetry: TelemetrySnapshot;
+    validation: ValidationSnapshot;
+    runState: string;
+    submissionState: string;
+    isDirty: boolean;
+    trafficActive: boolean;
 }
 
 type HealthLevel = 'ok' | 'warn' | 'crit';
@@ -54,14 +60,37 @@ function Metric({
     );
 }
 
-export function TelemetryPanel({ telemetry }: Props) {
+export function TelemetryPanel({
+    telemetry,
+    validation,
+    runState,
+    submissionState,
+    isDirty,
+    trafficActive,
+}: Props) {
     const t = telemetry;
     const health = getHealth(t.errorRatePct, t.p95ms);
+    const architectureHealth: HealthLevel = !validation.isValid
+        ? 'crit'
+        : validation.issues.length > 0
+            ? 'warn'
+            : 'ok';
+    const architectureLabel =
+        architectureHealth === 'crit'
+            ? 'Invalid'
+            : architectureHealth === 'warn'
+                ? 'Degraded'
+                : 'Healthy';
 
     return (
         <div className="panel telemetry-panel">
             <h3 className="panel-title">Telemetry</h3>
             <Metric label="Sim Time" value={t.simTimeSec.toFixed(1)} unit="s" />
+            <Metric label="Architecture" value={architectureLabel} health={architectureHealth} />
+            <Metric label="Run State" value={runState} />
+            <Metric label="Submission" value={submissionState} />
+            <Metric label="Traffic" value={trafficActive ? 'active' : 'stopped'} />
+            <Metric label="Dirty" value={isDirty ? 'yes' : 'no'} />
             <div className="metric-divider" />
             <Metric label="Input RPS" value={t.inputRps} health={health} />
             <Metric label="Success RPS" value={t.successRps} health={health} />

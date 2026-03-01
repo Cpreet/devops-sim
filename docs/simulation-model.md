@@ -6,7 +6,15 @@
 
 ## Overview
 
-The simulation runs as a **fixed-step tick loop** at 10 ticks per second. Each tick, traffic flows through the placed architecture following auto-derived dependency edges, and per-node physics (saturation, latency, errors) are computed.
+The simulation runs as a **fixed-step tick loop** at 10 ticks per second, but only when the architecture is explicitly started by the player.
+
+The engine now tracks:
+
+- lifecycle run state (`build`, `review`, `running`, `paused`, `stopped`)
+- submission state (`clean`, `dirty`, `validated`, `invalid`)
+- last submission result (blocking vs degradation issue IDs)
+
+Each tick, traffic flows through the current resolved dependency graph and per-node physics (saturation, latency, errors) are computed.
 
 The engine is in `src/sim/engine/SimEngine.ts`.
 
@@ -57,6 +65,22 @@ Each tick processes traffic in topological order:
 6. **QUEUE → WORKER**: Workers drain queue output, capped by `throughputRps × concurrency`.
 7. **WORKER → DB**: 50% of worker output generates DB load.
 8. **DB processing**: DBs are processed last since they receive traffic from multiple sources (cache misses, direct API, workers).
+
+---
+
+## Submission and Run Lifecycle
+
+Simulation is no longer always-on. A typical flow is:
+
+1. Build/edit architecture (add/move/remove/config/script updates).
+2. Engine marks architecture dirty.
+3. Player submits architecture (`submitArchitecture()`):
+   - validation recomputes
+   - submission result classifies blocking/degradation issues
+   - snapshot records submission metadata
+4. Player starts traffic (`startTraffic()`), pauses, or stops.
+
+With the current policy, traffic can still run in degraded mode even with validation errors; issue severity is surfaced for UX and scoring logic.
 
 ---
 
@@ -156,7 +180,13 @@ totalCost = sum(node.config.costPerMin)  for all nodes
 
 ## Auto-Wiring Rules
 
-Dependency edges are derived (not manually drawn) based on which node kinds are present:
+Dependency edges are resolved through `resolveConnections()` using node behavior config:
+
+- `routing.mode = auto`: uses default kind-based wiring
+- `routing.mode = explicit`: uses configured `targetNodeIds`
+- fallback policy can return to auto rules when explicit targets are missing
+
+Default rules remain:
 
 | Rule | Condition |
 |------|-----------|
@@ -170,7 +200,43 @@ Dependency edges are derived (not manually drawn) based on which node kinds are 
 
 When multiple nodes of the same kind exist, connections fan out (every source connects to every target of the required kind).
 
-The wiring function is `deriveEdges()` in `src/sim/model/graph.ts`. It rebuilds the full edge list on every topology change (node added/removed).
+`deriveEdges()` in `src/sim/model/graph.ts` delegates to `resolveConnections()` and rebuilds the full edge list on topology or behavior changes.
+
+---
+
+## Topology Validation
+
+Validation is computed in the simulation layer by `validateTopology()` in `src/sim/validation/topology.ts` and stored on the engine snapshot.
+
+Core checks include:
+
+- Presence checks (`NO_ENTRYPOINT`, `NO_API`, `NO_STORAGE`)
+- Persistence-path validity (`API->DB`, `API->CACHE->DB`, or `API->QUEUE->WORKER->DB`)
+- Queue/worker consistency (`QUEUE_WITHOUT_WORKER`, `WORKER_WITHOUT_QUEUE`) with queue severity based on whether routed traffic reaches the queue
+- Cache/DB consistency (`CACHE_WITHOUT_DB`)
+- Reachability checks (`DB_UNREACHABLE`, `ISOLATED_NODE`)
+- Direction safety (`INVALID_DEPENDENCY_DIRECTION`) to support future manual edge injection
+- Area placement warnings (`PUBLIC_TO_PRIVATE_VIOLATION`)
+
+Validation is recomputed on topology and configuration mutations, and exposed via `SimSnapshot.validation`.
+
+---
+
+## Config Mutation Boundary
+
+Runtime config and behavior updates happen through:
+
+- `SimEngine.updateNodeConfig(nodeId, patch)`
+- `SimEngine.updateNodeBehavior(nodeId, patch)`
+- `SimEngine.updateNodeScript(nodeId, jsonText)`
+
+At this boundary, incoming numeric values are normalized/clamped to avoid broken runtime states:
+
+- Non-negative guards for rate/time/cost-style fields
+- `hitRate` clamped to `[0, 1]`
+- `concurrency` coerced to integer with minimum `1`
+
+Behavior/script edits use Zod schemas at the update boundary and keep internals deterministic and typed.
 
 ---
 
@@ -199,4 +265,4 @@ Three schemas guard the simulation boundaries:
 |--------|----------|
 | `PlacementInputSchema` | Validates `(kind, gx, gy)` before `addNode()`. Ensures kind is valid and coordinates are within grid bounds. |
 | `LevelPresetSchema` | Validates preset definitions. Level 1 is validated at module load — a malformed preset crashes immediately. |
-| `SimSnapshotSchema` | Lightweight validation of snapshot structure. Available for debugging and future serialization. |
+| `SimSnapshotSchema` | Snapshot boundary validation including topology, validation, selection, lifecycle (`runState`, `submissionState`), dirty flag, and last submission metadata. |
