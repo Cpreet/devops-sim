@@ -1,0 +1,195 @@
+/* ── DevOps Simulator — Global Styles ────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── Reset ───────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+  background: #0a0a14;
+  color: #e0e0e8;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ── App Shell ───────────────────────────────────────────────────────── */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #0f0f22 0%, #141428 100%);
+  border-bottom: 1px solid #1e1e3a;
+}
+
+.app-header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: linear-gradient(90deg, #4fc3f7, #81c784);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-sub {
+  font-size: 12px;
+  color: #6a6a8a;
+  font-weight: 500;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  gap: 0;
+  overflow: hidden;
+}
+
+/* ── Canvas Area ─────────────────────────────────────────────────────── */
+.canvas-area {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  background: #0d0d1a;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.canvas-area canvas {
+  display: block;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: #0f0f22;
+  border-left: 1px solid #1e1e3a;
+  overflow-y: auto;
+}
+
+/* ── Panels ──────────────────────────────────────────────────────────── */
+.panel {
+  padding: 14px 16px;
+  border-bottom: 1px solid #1e1e3a;
+}
+
+.panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #8888aa;
+  margin-bottom: 10px;
+}
+
+/* ── Telemetry ───────────────────────────────────────────────────────── */
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 3px 0;
+  font-size: 13px;
+}
+
+.metric-label {
+  color: #8888aa;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: #e0e0e8;
+}
+
+.metric-unit {
+  font-size: 10px;
+  color: #6a6a8a;
+}
+
+/* ── Controls ────────────────────────────────────────────────────────── */
+.controls-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #4fc3f7, #29b6f6);
+  color: #0a0a14;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #81d4fa, #4fc3f7);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #e57373, #ef5350);
+  color: #0a0a14;
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #ef9a9a, #e57373);
+}
+
+/* ── Keybinds ────────────────────────────────────────────────────────── */
+.keybind-panel {
+  font-size: 12px;
+  color: #8888aa;
+  line-height: 1.8;
+}
+
+.keybind-list {
+  margin-top: 4px;
+}
+
+kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #1a1a30;
+  border: 1px solid #2a2a4a;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #ccccdd;
+  margin-right: 2px;
+}
