@@ -4,15 +4,17 @@ import Phaser from 'phaser';
 import { BuildScene } from './scenes/BuildScene';
 import type { SimEngine } from '../sim/engine/SimEngine';
 import type { SimSnapshot } from '../sim/types';
+import type { RadialAction } from './render/radialMenu';
 
 interface Props {
     engine: SimEngine;
     onSnapshot: (snap: SimSnapshot) => void;
+    onRadialAction?: (action: RadialAction) => void;
     /** Incremented externally to signal "redraw everything". */
     redrawToken: number;
 }
 
-export function PhaserHost({ engine, onSnapshot, redrawToken }: Props) {
+export function PhaserHost({ engine, onSnapshot, onRadialAction, redrawToken }: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
     const gameRef = useRef<Phaser.Game | null>(null);
     const sceneRef = useRef<BuildScene | null>(null);
@@ -42,7 +44,7 @@ export function PhaserHost({ engine, onSnapshot, redrawToken }: Props) {
         });
 
         const scene = new BuildScene();
-        game.scene.add('BuildScene', scene, true, { engine, onSnapshot });
+        game.scene.add('BuildScene', scene, true, { engine, onSnapshot, onRadialAction });
         gameRef.current = game;
         sceneRef.current = scene;
 

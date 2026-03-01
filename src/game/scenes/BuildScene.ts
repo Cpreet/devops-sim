@@ -8,7 +8,16 @@ import {
     TILE_H,
     GRID_SIZE,
 } from '../iso/isoMath';
-import { drawEdges, drawFlowPulses } from '../render/edgeRenderer';
+import { drawFlowEdges, drawFlowPulses } from '../render/flowArrows';
+import { KEY_TO_ACTION, type GameAction } from '../input/keymap';
+import { createInitialInteractionState, type InteractionState } from '../input/interactionState';
+import {
+    drawRadialMenu,
+    radialIndexFromPointer,
+    RADIAL_OPTIONS,
+    type RadialAction,
+    type RadialLayout,
+} from '../render/radialMenu';
 import type { SimEngine } from '../../sim/engine/SimEngine';
 import type { SimSnapshot, SimNode, NodeKind, SimArea } from '../../sim/types';
 
@@ -32,15 +41,6 @@ const KIND_LABELS: Record<NodeKind, string> = {
     WORKER: 'WORKER',
 };
 
-const KEY_MAP: Record<string, NodeKind> = {
-    ONE: 'LB',
-    TWO: 'API',
-    THREE: 'DB',
-    FOUR: 'CACHE',
-    FIVE: 'QUEUE',
-    SIX: 'WORKER',
-};
-
 // ── Tile / board constants ──────────────────────────────────────────────
 
 const TILE_FILL = 0x12152a;
@@ -51,12 +51,17 @@ const TILE_STROKE_ALPHA = 0.7;
 const HOVER_FILL = 0x1e2850;
 const HOVER_FILL_ALPHA = 0.7;
 const HOVER_STROKE = 0x4a6090;
+const INVALID_FILL = 0x402222;
+const INVALID_STROKE = 0xc0675a;
+const CURSOR_FILL = 0x225f8c;
+const CURSOR_STROKE = 0x4fc3f7;
 
 // ── Scene ───────────────────────────────────────────────────────────────
 
 export class BuildScene extends Phaser.Scene {
     private engine!: SimEngine;
     private onSnapshot!: (snap: SimSnapshot) => void;
+    private onRadialAction?: (action: RadialAction) => void;
     private selectedKind: NodeKind = 'LB';
 
     // Graphics layers (drawn in this order)
@@ -65,6 +70,7 @@ export class BuildScene extends Phaser.Scene {
     private hoverGfx!: Phaser.GameObjects.Graphics;
     private edgeGfx!: Phaser.GameObjects.Graphics;
     private flowGfx!: Phaser.GameObjects.Graphics;
+    private radialGfx!: Phaser.GameObjects.Graphics;
     private nodeLayer!: Phaser.GameObjects.Container;
     private hudText!: Phaser.GameObjects.Text;
 
@@ -75,6 +81,14 @@ export class BuildScene extends Phaser.Scene {
     // Hover tracking
     private hoverGX = -1;
     private hoverGY = -1;
+    private interaction: InteractionState = createInitialInteractionState(
+        Math.floor(GRID_SIZE / 2),
+        Math.floor(GRID_SIZE / 2),
+    );
+    private radialOpen = false;
+    private radialIndex = 0;
+    private radialLayout: RadialLayout | null = null;
+    private radialLabels: Phaser.GameObjects.Text[] = [];
 
     // Camera drag state
     private isDragging = false;
@@ -91,9 +105,14 @@ export class BuildScene extends Phaser.Scene {
         super({ key: 'BuildScene' });
     }
 
-    init(data: { engine: SimEngine; onSnapshot: (s: SimSnapshot) => void }): void {
+    init(data: {
+        engine: SimEngine;
+        onSnapshot: (s: SimSnapshot) => void;
+        onRadialAction?: (action: RadialAction) => void;
+    }): void {
         this.engine = data.engine;
         this.onSnapshot = data.onSnapshot;
+        this.onRadialAction = data.onRadialAction;
     }
 
     create(): void {
@@ -102,6 +121,7 @@ export class BuildScene extends Phaser.Scene {
         this.hoverGfx = this.add.graphics();
         this.edgeGfx = this.add.graphics();
         this.flowGfx = this.add.graphics();
+        this.radialGfx = this.add.graphics();
         this.nodeLayer = this.add.container(0, 0);
 
         this.drawGrid();
@@ -125,11 +145,9 @@ export class BuildScene extends Phaser.Scene {
         this.updateHud();
 
         // ── Keybinds ────────────────────────────────────────────────────────
-
-        for (const [keyName, kind] of Object.entries(KEY_MAP)) {
+        for (const [keyName, action] of Object.entries(KEY_TO_ACTION)) {
             this.input.keyboard!.on(`keydown-${keyName}`, () => {
-                this.selectedKind = kind;
-                this.updateHud();
+                this.handleAction(action);
             });
         }
 
@@ -141,10 +159,17 @@ export class BuildScene extends Phaser.Scene {
             const worldY = ptr.worldY - this.originY;
             const { gx, gy } = screenToGrid(worldX, worldY);
             if (inBounds(gx, gy)) {
+                if (this.interaction.mode === 'dragging') {
+                    this.interaction.previewGX = gx;
+                    this.interaction.previewGY = gy;
+                    const isValid = this.isValidDropTarget(gx, gy, this.interaction.dragNodeId ?? undefined);
+                    this.drawHover(gx, gy, isValid);
+                    return;
+                }
                 if (gx !== this.hoverGX || gy !== this.hoverGY) {
                     this.hoverGX = gx;
                     this.hoverGY = gy;
-                    this.drawHover(gx, gy);
+                    this.drawHover(gx, gy, true);
                 }
             } else {
                 this.clearHover();
@@ -192,6 +217,14 @@ export class BuildScene extends Phaser.Scene {
 
         this.input.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
             if (!ptr.leftButtonDown() || this.isDragging) return;
+            if (this.radialOpen && this.radialLayout) {
+                const idx = radialIndexFromPointer(ptr.worldX, ptr.worldY, this.radialLayout);
+                if (idx !== null) {
+                    this.radialIndex = idx;
+                    this.activateRadialOption(RADIAL_OPTIONS[idx].id);
+                    return;
+                }
+            }
             const worldX = ptr.worldX - this.originX;
             const worldY = ptr.worldY - this.originY;
             const { gx, gy } = screenToGrid(worldX, worldY);
@@ -201,13 +234,58 @@ export class BuildScene extends Phaser.Scene {
 
             if (existingNode) {
                 this.engine.selectNode(existingNode.id);
+                this.interaction.mode = 'dragging';
+                this.interaction.dragNodeId = existingNode.id;
+                this.interaction.dragKind = null;
+                this.interaction.previewGX = gx;
+                this.interaction.previewGY = gy;
+                this.interaction.moveNodeId = existingNode.id;
                 this.redrawNodes();
             } else {
                 this.engine.selectNode(null);
-                const added = this.engine.addNode(this.selectedKind, gx, gy);
-                if (added) this.redrawNodes();
+                this.interaction.mode = 'dragging';
+                this.interaction.dragNodeId = null;
+                this.interaction.dragKind = this.selectedKind;
+                this.interaction.previewGX = gx;
+                this.interaction.previewGY = gy;
+                this.drawHover(gx, gy, this.isValidDropTarget(gx, gy));
             }
         });
+
+        this.input.on('pointerup', (ptr: Phaser.Input.Pointer) => {
+            if (!ptr.leftButtonDown()) {
+                const previewGX = this.interaction.previewGX;
+                const previewGY = this.interaction.previewGY;
+                const dragNodeId = this.interaction.dragNodeId;
+                const dragKind = this.interaction.dragKind;
+
+                if (
+                    this.interaction.mode === 'dragging' &&
+                    previewGX !== null &&
+                    previewGY !== null &&
+                    inBounds(previewGX, previewGY)
+                ) {
+                    if (dragNodeId) {
+                        const moved = this.engine.moveNode(dragNodeId, previewGX, previewGY);
+                        if (moved) this.redrawNodes();
+                    } else if (dragKind) {
+                        const added = this.engine.addNode(dragKind as NodeKind, previewGX, previewGY);
+                        if (added) this.redrawNodes();
+                    }
+                }
+
+                this.interaction.dragNodeId = null;
+                this.interaction.dragKind = null;
+                this.interaction.previewGX = null;
+                this.interaction.previewGY = null;
+                if (this.interaction.mode === 'dragging') {
+                    this.interaction.mode = this.engine.selectedNodeId ? 'selected' : 'placing';
+                }
+                this.radialOpen = false;
+            }
+        });
+
+        this.drawCursor();
     }
 
     update(time: number, delta: number): void {
@@ -230,6 +308,7 @@ export class BuildScene extends Phaser.Scene {
         this.nodeLayer.removeAll(true);
         this.edgeGfx.clear();
         this.areaGfx.clear();
+        this.radialGfx.clear();
 
         const snap = this.engine.getSnapshot();
 
@@ -241,7 +320,7 @@ export class BuildScene extends Phaser.Scene {
 
         // ── Edges ───────────────────────────────────────────────────────────
 
-        drawEdges(this.edgeGfx, snap, this.originX, this.originY);
+        drawFlowEdges(this.edgeGfx, snap, this.originX, this.originY);
 
         // ── Nodes ───────────────────────────────────────────────────────────
 
@@ -252,6 +331,9 @@ export class BuildScene extends Phaser.Scene {
             const isSelected = n.id === snap.selectedNodeId;
             this.drawNode(n, isSelected, isError, isWarning);
         }
+        this.drawRadialOverlay(snap);
+        this.hoverGfx.clear();
+        this.drawCursor();
     }
 
     clearAll(): void {
@@ -259,6 +341,7 @@ export class BuildScene extends Phaser.Scene {
         this.edgeGfx.clear();
         this.flowGfx.clear();
         this.areaGfx.clear();
+        this.radialGfx.clear();
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -345,15 +428,209 @@ export class BuildScene extends Phaser.Scene {
     //  Private — Hover
     // ══════════════════════════════════════════════════════════════════════
 
-    private drawHover(gx: number, gy: number): void {
+    private drawHover(gx: number, gy: number, isValid: boolean): void {
         this.hoverGfx.clear();
-        this.drawTile(this.hoverGfx, gx, gy, HOVER_FILL, HOVER_FILL_ALPHA, HOVER_STROKE, 0.9);
+        if (isValid) {
+            this.drawTile(this.hoverGfx, gx, gy, HOVER_FILL, HOVER_FILL_ALPHA, HOVER_STROKE, 0.9);
+        } else {
+            this.drawTile(this.hoverGfx, gx, gy, INVALID_FILL, 0.7, INVALID_STROKE, 0.95);
+        }
+        this.drawCursor();
     }
 
     private clearHover(): void {
         this.hoverGX = -1;
         this.hoverGY = -1;
         this.hoverGfx.clear();
+        this.drawCursor();
+    }
+
+    private drawCursor(): void {
+        const { cursorGX, cursorGY } = this.interaction;
+        if (!inBounds(cursorGX, cursorGY)) return;
+        this.drawTile(this.hoverGfx, cursorGX, cursorGY, CURSOR_FILL, 0.3, CURSOR_STROKE, 1);
+    }
+
+    private isValidDropTarget(gx: number, gy: number, movingNodeId?: string): boolean {
+        if (!inBounds(gx, gy)) return false;
+        return !this.engine.nodes.some((n) => n.id !== movingNodeId && n.gx === gx && n.gy === gy);
+    }
+
+    private moveCursor(dx: number, dy: number): void {
+        this.interaction.cursorGX = Phaser.Math.Clamp(this.interaction.cursorGX + dx, 0, GRID_SIZE - 1);
+        this.interaction.cursorGY = Phaser.Math.Clamp(this.interaction.cursorGY + dy, 0, GRID_SIZE - 1);
+        this.hoverGfx.clear();
+        this.drawCursor();
+    }
+
+    private handleAction(action: GameAction): void {
+        if (action === 'select-lb') this.selectedKind = 'LB';
+        if (action === 'select-api') this.selectedKind = 'API';
+        if (action === 'select-db') this.selectedKind = 'DB';
+        if (action === 'select-cache') this.selectedKind = 'CACHE';
+        if (action === 'select-queue') this.selectedKind = 'QUEUE';
+        if (action === 'select-worker') this.selectedKind = 'WORKER';
+
+        if (action === 'cursor-up') this.moveCursor(0, -1);
+        if (action === 'cursor-down') this.moveCursor(0, 1);
+        if (action === 'cursor-left') this.moveCursor(-1, 0);
+        if (action === 'cursor-right') this.moveCursor(1, 0);
+
+        if (action === 'open-radial' && this.engine.selectedNodeId) {
+            this.radialOpen = !this.radialOpen;
+            this.radialIndex = 0;
+            this.redrawNodes();
+            return;
+        }
+
+        if (action === 'radial-next' && this.radialOpen) {
+            this.radialIndex = (this.radialIndex + 1) % RADIAL_OPTIONS.length;
+            this.redrawNodes();
+            return;
+        }
+        if (action === 'radial-prev' && this.radialOpen) {
+            this.radialIndex = (this.radialIndex - 1 + RADIAL_OPTIONS.length) % RADIAL_OPTIONS.length;
+            this.redrawNodes();
+            return;
+        }
+
+        if (action === 'show-stats' && this.engine.selectedNodeId) {
+            this.onRadialAction?.('stats');
+            this.radialOpen = false;
+            this.redrawNodes();
+            return;
+        }
+        if (action === 'show-config' && this.engine.selectedNodeId) {
+            this.onRadialAction?.('config');
+            this.radialOpen = false;
+            this.redrawNodes();
+            return;
+        }
+
+        if (action === 'confirm') {
+            if (this.radialOpen) {
+                this.activateRadialOption(RADIAL_OPTIONS[this.radialIndex].id);
+                return;
+            }
+            if (this.interaction.mode === 'move-node' && this.interaction.moveNodeId) {
+                const moved = this.engine.moveNode(
+                    this.interaction.moveNodeId,
+                    this.interaction.cursorGX,
+                    this.interaction.cursorGY,
+                );
+                if (moved) this.redrawNodes();
+                this.interaction.mode = 'selected';
+            } else {
+                const existing = this.engine.nodes.find(
+                    (n) => n.gx === this.interaction.cursorGX && n.gy === this.interaction.cursorGY,
+                );
+                if (existing) {
+                    this.engine.selectNode(existing.id);
+                    this.interaction.mode = 'selected';
+                    this.interaction.moveNodeId = existing.id;
+                } else {
+                    const added = this.engine.addNode(
+                        this.selectedKind,
+                        this.interaction.cursorGX,
+                        this.interaction.cursorGY,
+                    );
+                    if (added) this.redrawNodes();
+                }
+            }
+        }
+
+        if (action === 'move-mode' && this.engine.selectedNodeId) {
+            const selectedNode = this.engine.getNodeById(this.engine.selectedNodeId);
+            if (selectedNode) {
+                this.interaction.mode = 'move-node';
+                this.interaction.moveNodeId = selectedNode.id;
+                this.interaction.moveStartGX = selectedNode.gx;
+                this.interaction.moveStartGY = selectedNode.gy;
+                this.interaction.cursorGX = selectedNode.gx;
+                this.interaction.cursorGY = selectedNode.gy;
+                this.hoverGfx.clear();
+                this.drawCursor();
+            }
+        }
+
+        if (action === 'cancel') {
+            if (
+                this.interaction.mode === 'move-node' &&
+                this.interaction.moveStartGX !== null &&
+                this.interaction.moveStartGY !== null
+            ) {
+                this.interaction.cursorGX = this.interaction.moveStartGX;
+                this.interaction.cursorGY = this.interaction.moveStartGY;
+            }
+            this.interaction.mode = this.engine.selectedNodeId ? 'selected' : 'placing';
+            this.interaction.dragKind = null;
+            this.interaction.dragNodeId = null;
+            this.interaction.previewGX = null;
+            this.interaction.previewGY = null;
+            this.hoverGfx.clear();
+            this.drawCursor();
+            this.radialOpen = false;
+        }
+
+        if (action === 'delete-node' && this.engine.selectedNodeId) {
+            const removed = this.engine.removeNode(this.engine.selectedNodeId);
+            if (removed) {
+                this.interaction.mode = 'placing';
+                this.interaction.moveNodeId = null;
+                this.redrawNodes();
+            }
+        }
+
+        if (action === 'submit-start-traffic') {
+            this.engine.startTraffic();
+        }
+
+        this.updateHud();
+    }
+
+    private activateRadialOption(action: RadialAction): void {
+        if (action === 'stats' || action === 'config') {
+            this.onRadialAction?.(action);
+        } else if (action === 'move') {
+            this.handleAction('move-mode');
+        } else if (action === 'delete' && this.engine.selectedNodeId) {
+            const removed = this.engine.removeNode(this.engine.selectedNodeId);
+            if (removed) {
+                this.interaction.mode = 'placing';
+                this.interaction.moveNodeId = null;
+            }
+        }
+        this.radialOpen = false;
+        this.redrawNodes();
+    }
+
+    private drawRadialOverlay(snap: SimSnapshot): void {
+        this.radialLabels = [];
+        this.radialLayout = null;
+        if (!this.radialOpen || !snap.selectedNodeId) return;
+        const node = snap.nodes.find((n) => n.id === snap.selectedNodeId);
+        if (!node) return;
+
+        const p = gridToScreen(node.gx, node.gy);
+        const cx = this.originX + p.x + TILE_W * 0.55;
+        const cy = this.originY + p.y - TILE_H * 0.4;
+        this.radialLayout = { cx, cy, radius: 54 };
+        drawRadialMenu(this.radialGfx, this.radialLayout, this.radialIndex);
+
+        const slice = (Math.PI * 2) / RADIAL_OPTIONS.length;
+        for (let i = 0; i < RADIAL_OPTIONS.length; i++) {
+            const angle = -Math.PI / 2 + i * slice + slice / 2;
+            const tx = cx + Math.cos(angle) * 34;
+            const ty = cy + Math.sin(angle) * 34;
+            const label = this.add.text(tx, ty, RADIAL_OPTIONS[i].label, {
+                fontFamily: '"JetBrains Mono", monospace',
+                fontSize: '10px',
+                color: i === this.radialIndex ? '#9ad8ff' : '#6f86a8',
+            });
+            label.setOrigin(0.5, 0.5);
+            this.nodeLayer.add(label);
+            this.radialLabels.push(label);
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -498,7 +775,7 @@ export class BuildScene extends Phaser.Scene {
                 gfx.strokeRoundedRect(sx - 14, sy - 14, 28, 19, 2);
                 break;
 
-            case 'WORKER':
+            case 'WORKER': {
                 // Hexagon — processing unit
                 gfx.fillStyle(color, 0.75);
                 gfx.beginPath();
@@ -519,6 +796,7 @@ export class BuildScene extends Phaser.Scene {
                 gfx.fillStyle(0xffffff, 0.3);
                 gfx.fillCircle(sx, cy, 3);
                 break;
+            }
         }
     }
 
@@ -542,7 +820,7 @@ export class BuildScene extends Phaser.Scene {
 
     private updateHud(): void {
         this.hudText.setText(
-            `  ● ${this.selectedKind}  [1-6]  ·  scroll = zoom  ·  right-drag = pan  `,
+            `  ● ${this.selectedKind} [1-6] · mode: ${this.interaction.mode} · Enter: place/select · M: move · T: start · Esc: cancel `,
         );
     }
 }
