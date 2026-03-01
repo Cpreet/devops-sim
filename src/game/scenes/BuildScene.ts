@@ -502,26 +502,17 @@ export class BuildScene extends Phaser.Scene {
         this.ghostGfx.closePath();
         this.ghostGfx.strokePath();
 
-        // Service body
-        const bodyW = 44;
-        const bodyH = 36;
-        const bodyX = sx - bodyW / 2;
-        const bodyY = sy - bodyH / 2 - 8;
-        this.ghostGfx.fillStyle(tokens.base, alpha);
-        this.ghostGfx.fillRoundedRect(bodyX, bodyY, bodyW, bodyH, 6);
-        this.ghostGfx.lineStyle(1, 0xffffff, alpha * 0.5);
-        this.ghostGfx.strokeRoundedRect(bodyX, bodyY, bodyW, bodyH, 6);
-
         // Invalid X overlay
         if (!isValid) {
             this.ghostGfx.lineStyle(3, 0xe53935, 0.6);
+            const r = 22;
             this.ghostGfx.beginPath();
-            this.ghostGfx.moveTo(sx - 10, sy - 18);
-            this.ghostGfx.lineTo(sx + 10, sy + 2);
+            this.ghostGfx.moveTo(sx - r, sy - 6 - r);
+            this.ghostGfx.lineTo(sx + r, sy - 6 + r);
             this.ghostGfx.strokePath();
             this.ghostGfx.beginPath();
-            this.ghostGfx.moveTo(sx + 10, sy - 18);
-            this.ghostGfx.lineTo(sx - 10, sy + 2);
+            this.ghostGfx.moveTo(sx + r, sy - 6 - r);
+            this.ghostGfx.lineTo(sx - r, sy - 6 + r);
             this.ghostGfx.strokePath();
         }
 
@@ -745,7 +736,6 @@ export class BuildScene extends Phaser.Scene {
     // ── HUD ───────────────────────────────────────────────────────────────
 
     private updateHud(): void {
-        const kindColor = nodeTokens[this.selectedKind].css;
         this.hudText.setText(
             `  ● ${this.selectedKind} [1-6]  ·  mode: ${this.interaction.mode}  ·  Enter: place/select  ·  M: move  ·  T: start  ·  Esc: cancel  `,
         );

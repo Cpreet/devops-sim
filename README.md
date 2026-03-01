@@ -9,18 +9,11 @@ A game-like interactive simulator for **software systems design and reliability 
 ## Quick Start
 
 ```bash
-npm install
-npm run dev
-```
-
-Or with [Bun](https://bun.sh):
-
-```bash
 bun install
-bun dev
+bun run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+Open [http://localhost:5173](http://localhost:5173). (Node.js/npm also work: `npm install` then `npm run dev`.)
 
 ## What Is This?
 
@@ -54,13 +47,13 @@ DevOps Simulator is a **strategy / management game for backend infrastructure co
 
 | Layer | Technology |
 |-------|-----------|
-| Runtime | Node.js / [Bun](https://bun.sh) |
+| Runtime | [Bun](https://bun.sh) (or Node.js) |
 | Bundler | [Vite](https://vite.dev) |
 | UI | [React 19](https://react.dev) |
 | Rendering | [Phaser 3](https://phaser.io) (Canvas) |
 | Validation | [Zod 4](https://zod.dev) |
 | Language | TypeScript 5.9 |
-| Icons | AWS Architecture Icons |
+| Icons | [Isoflow Isopacks](https://www.npmjs.com/package/@isoflow/isopacks) (load balancer, server, storage, cache, queue, cronjob) |
 | Deploy | [Netlify](https://netlify.com) |
 
 ## Project Structure
@@ -119,7 +112,7 @@ src/
 Build and deploy to [Netlify](https://netlify.com) (e.g. with Netlify CLI):
 
 ```bash
-npm run build
+bun run build
 ntl deploy --prod --dir dist
 ```
 

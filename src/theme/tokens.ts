@@ -30,7 +30,17 @@ export const node: Record<NodeKind, { base: number; accent: string; css: string 
     WORKER: { base: 0x607d8b, accent: '#607D8B', css: '#607D8B' },
 };
 
-export const edge = {
+export const edge: {
+    default: { color: number; alpha: number; width: number };
+    active: { color: number; alpha: number; width: number };
+    warning: { color: number; alpha: number; width: number };
+    error: { color: number; alpha: number; width: number };
+    selected: { widthAdd: number; alphaAdd: number };
+    shadow: { color: number; alpha: number; widthAdd: number };
+    arrowSize: number;
+    arrowOffset: number;
+    pulse: { radius: number; alpha: number };
+} = {
     default: { color: 0x90a4ae, alpha: 0.55, width: 2.5 },
     active:  { color: 0x2196f3, alpha: 0.75, width: 2.5 },
     warning: { color: 0xf9a825, alpha: 0.75, width: 2.5 },
@@ -40,20 +50,20 @@ export const edge = {
     arrowSize: 10,
     arrowOffset: 16,
     pulse: { radius: 3.5, alpha: 0.7 },
-} as const;
+};
 
-export const selection = {
+export const selection: { color: number; colorCss: string; alpha: number; ringWidth: number } = {
     color: 0x2979ff,
     colorCss: '#2979FF',
     alpha: 0.15,
     ringWidth: 2.5,
-} as const;
+};
 
-export const status = {
+export const status: { ok: { hex: number; css: string }; warn: { hex: number; css: string }; error: { hex: number; css: string } } = {
     ok:      { hex: 0x43a047, css: '#43A047' },
     warn:    { hex: 0xf9a825, css: '#F9A825' },
     error:   { hex: 0xe53935, css: '#E53935' },
-} as const;
+};
 
 export const hover = {
     validFill: 0x2196f3,

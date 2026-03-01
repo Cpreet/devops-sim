@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { SimNode, NodeConfig, NodeBehaviorConfig } from '../../sim/types';
-import { node as nodeTokens } from '../../theme/tokens';
 import { ConfigEditor } from './ConfigEditor';
 
 interface Props {
@@ -62,7 +61,6 @@ export function ConfigModal({
     onClose,
 }: Props) {
     const c = node.config;
-    const tokens = nodeTokens[node.kind];
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Escape') onClose();
@@ -77,7 +75,7 @@ export function ConfigModal({
         <div className="config-modal-backdrop" onClick={onClose}>
             <div className="config-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="config-modal__header">
-                    <div className="config-modal__icon" style={{ backgroundColor: tokens.css }}>
+                    <div className="config-modal__icon">
                         <img src={`icons/${node.kind.toLowerCase()}.svg`} alt={node.kind} />
                     </div>
                     <div>

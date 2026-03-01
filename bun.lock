@@ -5,6 +5,7 @@
     "": {
       "name": "devops-sim",
       "dependencies": {
+        "@isoflow/isopacks": "^0.0.10",
         "phaser": "^3.90.0",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
@@ -136,6 +137,8 @@
     "@humanwhocodes/module-importer": ["@humanwhocodes/module-importer@1.0.1", "", {}, "sha512-bxveV4V8v5Yb4ncFTT3rPSgZBOpCkjfK0y4oVVVJwIuDVBRMDXrPyXRL988i5ap9m9bnyEEjWfm5WkBmtffLfA=="],
 
     "@humanwhocodes/retry": ["@humanwhocodes/retry@0.4.3", "", {}, "sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ=="],
+
+    "@isoflow/isopacks": ["@isoflow/isopacks@0.0.10", "", {}, "sha512-pR5vj2A83mPBCxgswD+tE8+/ftXmesv5Qy6sgNAuYxiyDw7Dng1zA1QnRKgxdvgsGH9qTDwak+53KzJuHeVTNg=="],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 

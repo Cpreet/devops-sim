@@ -65,10 +65,6 @@ function Metric({
 export function TelemetryPanel({
     telemetry,
     validation,
-    runState,
-    submissionState,
-    isDirty,
-    trafficActive,
 }: Props) {
     const t = telemetry;
     const health = getHealth(t.errorRatePct, t.p95ms);

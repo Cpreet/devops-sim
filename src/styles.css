@@ -189,18 +189,15 @@ body,
 }
 
 .service-card__icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .service-card__icon img {
-  width: 20px;
-  height: 20px;
-  filter: brightness(0) invert(1);
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
 }
 
 .service-card__label {
@@ -408,18 +405,15 @@ kbd {
 }
 
 .inspector-header__icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .inspector-header__icon img {
-  width: 18px;
-  height: 18px;
-  filter: brightness(0) invert(1);
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .inspector-header__title {
@@ -650,9 +644,6 @@ kbd {
 }
 
 .config-modal__icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -660,9 +651,9 @@ kbd {
 }
 
 .config-modal__icon img {
-  width: 22px;
-  height: 22px;
-  filter: brightness(0) invert(1);
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
 }
 
 .config-modal__title {

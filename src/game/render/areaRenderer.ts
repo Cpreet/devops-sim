@@ -1,4 +1,4 @@
-import { gridToScreen, TILE_W, TILE_H } from '../iso/isoMath';
+import { gridToScreen } from '../iso/isoMath';
 import { area as areaTokens } from '../../theme/tokens';
 import type { SimArea } from '../../sim/types';
 

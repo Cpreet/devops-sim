@@ -11,13 +11,15 @@ const ICON_KEYS: Record<NodeKind, string> = {
     WORKER: 'icon-worker',
 };
 
+const ICON_SIZE = 88;
+
 export function preloadNodeIcons(scene: Phaser.Scene): void {
-    scene.load.svg('icon-lb', 'icons/lb.svg', { width: 28, height: 28 });
-    scene.load.svg('icon-api', 'icons/api.svg', { width: 28, height: 28 });
-    scene.load.svg('icon-db', 'icons/db.svg', { width: 28, height: 28 });
-    scene.load.svg('icon-cache', 'icons/cache.svg', { width: 28, height: 28 });
-    scene.load.svg('icon-queue', 'icons/queue.svg', { width: 28, height: 28 });
-    scene.load.svg('icon-worker', 'icons/worker.svg', { width: 28, height: 28 });
+    scene.load.svg('icon-lb', 'icons/lb.svg', { width: ICON_SIZE, height: ICON_SIZE });
+    scene.load.svg('icon-api', 'icons/api.svg', { width: ICON_SIZE, height: ICON_SIZE });
+    scene.load.svg('icon-db', 'icons/db.svg', { width: ICON_SIZE, height: ICON_SIZE });
+    scene.load.svg('icon-cache', 'icons/cache.svg', { width: ICON_SIZE, height: ICON_SIZE });
+    scene.load.svg('icon-queue', 'icons/queue.svg', { width: ICON_SIZE, height: ICON_SIZE });
+    scene.load.svg('icon-worker', 'icons/worker.svg', { width: ICON_SIZE, height: ICON_SIZE });
 }
 
 export function drawNode(
@@ -62,45 +64,28 @@ export function drawNode(
     gfx.closePath();
     gfx.strokePath();
 
-    // 3. Service body (rounded rect)
-    const bodyW = 44;
-    const bodyH = 36;
-    const bodyX = sx - bodyW / 2;
-    const bodyY = sy - bodyH / 2 - 8;
-
-    // Body fill with subtle top highlight
-    gfx.fillStyle(tokens.base, 0.85);
-    gfx.fillRoundedRect(bodyX, bodyY, bodyW, bodyH, 6);
-
-    // Top highlight
-    gfx.fillStyle(0xffffff, 0.15);
-    gfx.fillRoundedRect(bodyX + 2, bodyY + 2, bodyW - 4, bodyH * 0.35, { tl: 4, tr: 4, bl: 0, br: 0 });
-
-    // Body border
-    gfx.lineStyle(1, 0xffffff, 0.3);
-    gfx.strokeRoundedRect(bodyX, bodyY, bodyW, bodyH, 6);
-
-    // 4. Icon
+    // 3. Icon (no covering body)
+    const iconDisplaySize = 72;
     const iconKey = ICON_KEYS[n.kind];
     if (scene.textures.exists(iconKey)) {
-        const icon = scene.add.image(sx, sy - 8, iconKey);
-        icon.setDisplaySize(22, 22);
+        const icon = scene.add.image(sx, sy - 6, iconKey);
+        icon.setDisplaySize(iconDisplaySize, iconDisplaySize);
         icon.setTint(0xffffff);
-        icon.setAlpha(0.9);
+        icon.setAlpha(0.95);
         nodeLayer.add(icon);
     }
 
-    // 5. Saturation glow ring
+    // 4. Saturation glow ring
     if (n.state.saturation > 0.6) {
         const glowAlpha = Math.min((n.state.saturation - 0.6) * 2.5, 0.8);
         const glowColor = n.state.saturation > 0.9 ? status.error.hex : status.warn.hex;
         gfx.lineStyle(2.5, glowColor, glowAlpha);
-        gfx.strokeCircle(sx, sy - 6, 28);
+        gfx.strokeCircle(sx, sy - 6, 44);
     }
 
     nodeLayer.add(gfx);
 
-    // 6. Selection / error / warning ring
+    // 5. Selection / error / warning ring
     if (isSelected || isError || isWarning) {
         const outline = scene.add.graphics();
         let outColor = selection.color;
@@ -121,9 +106,9 @@ export function drawNode(
         nodeLayer.add(outline);
     }
 
-    // 7. Status indicator dot
-    const statusDotX = sx + bodyW / 2 - 2;
-    const statusDotY = bodyY + 4;
+    // 6. Status indicator dot
+    const statusDotX = sx + 32;
+    const statusDotY = sy - 34;
     const dotGfx = scene.add.graphics();
     let dotColor = status.ok.hex;
     if (isError) dotColor = status.error.hex;
@@ -133,7 +118,7 @@ export function drawNode(
     dotGfx.fillCircle(statusDotX, statusDotY, 3.5);
     nodeLayer.add(dotGfx);
 
-    // 8. Label plate
+    // 7. Label plate
     const labelBgGfx = scene.add.graphics();
     const labelText = KIND_LABELS[n.kind];
     const label = scene.add.text(sx, sy + padHH + 2, labelText, {

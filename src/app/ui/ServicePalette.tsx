@@ -1,4 +1,4 @@
-import { node as nodeTokens, KIND_LABELS } from '../../theme/tokens';
+import { KIND_LABELS } from '../../theme/tokens';
 import type { NodeKind } from '../../sim/types';
 import { ALL_KINDS } from '../../sim/types';
 
@@ -18,10 +18,7 @@ export function ServicePalette() {
             <div className="service-palette">
                 {ALL_KINDS.map((kind) => (
                     <div key={kind} className="service-card">
-                        <div
-                            className="service-card__icon"
-                            style={{ backgroundColor: nodeTokens[kind].css }}
-                        >
+                        <div className="service-card__icon">
                             <img src={`icons/${kind.toLowerCase()}.svg`} alt={kind} />
                         </div>
                         <span className="service-card__label">{KIND_LABELS[kind]}</span>

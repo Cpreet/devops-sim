@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "icons": "bun run scripts/extract-icons.ts"
   },
   "dependencies": {
+    "@isoflow/isopacks": "^0.0.10",
     "phaser": "^3.90.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

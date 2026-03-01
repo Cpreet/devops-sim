@@ -46,7 +46,7 @@ In `src/game/scenes/BuildScene.ts`:
 - Add an entry to `KIND_COLORS` (fallback color)
 - Add an entry to `KIND_LABELS` (display name)
 - Add an entry to `KIND_ICON_KEY` (icon texture key)
-- Add the icon SVG to `public/icons/` and load it in `preload()`
+- Add the icon SVG to `public/icons/` and load it in `preload()`. Node icons are from [Isoflow Isopacks](https://www.npmjs.com/package/@isoflow/isopacks); run `bun run icons` to regenerate SVGs from the isoflow pack (edit `scripts/extract-icons.ts` to add new kinds).
 - Add a keybind in `KEY_MAP` (e.g., `SEVEN: 'CDN'`)
 
 ### 5. Update schemas

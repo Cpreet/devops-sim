@@ -1,5 +1,4 @@
 import type { SimNode } from '../../sim/types';
-import { node as nodeTokens } from '../../theme/tokens';
 
 interface Props {
     node: SimNode;
@@ -27,12 +26,11 @@ export function NodeInspector({
     onClose,
 }: Props) {
     const s = node.state;
-    const tokens = nodeTokens[node.kind];
 
     return (
         <div className="panel inspector-panel">
             <div className="inspector-header">
-                <div className="inspector-header__icon" style={{ backgroundColor: tokens.css }}>
+                <div className="inspector-header__icon">
                     <img src={`icons/${node.kind.toLowerCase()}.svg`} alt={node.kind} />
                 </div>
                 <div className="inspector-header__title">
