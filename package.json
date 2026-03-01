@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "icons": "bun run scripts/extract-icons.ts"
+    "icons": "bun run scripts/extract-icons.ts",
+    "screenshot": "node scripts/screenshot.mjs"
   },
   "dependencies": {
     "@isoflow/isopacks": "^0.0.10",
@@ -27,6 +28,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "playwright": "^1.58.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
     "vite": "^7.3.1"
