@@ -2,9 +2,18 @@
 
 A game-like interactive simulator for **software systems design and reliability thinking**. Players build distributed architectures on an isometric grid, configure service behavior, validate topology, and explicitly submit/start traffic runs.
 
+**Live demo:** [https://devops-sim.netlify.app](https://devops-sim.netlify.app)
+
 ![Level 1 — Standard Stack](docs/assets/level1-screenshot.png)
 
 ## Quick Start
+
+```bash
+npm install
+npm run dev
+```
+
+Or with [Bun](https://bun.sh):
 
 ```bash
 bun install
@@ -29,12 +38,12 @@ DevOps Simulator is a **strategy / management game for backend infrastructure co
 | `Enter` / `Space` | Place/select/confirm action |
 | Left drag | Place ghost / move selected node with grid snap |
 | `M` | Enter keyboard move mode for selected node |
-| `R` | Open radial node menu |
+| Right-click node | Open radial node menu (config, stats, delete, etc.) |
 | `Tab` / `Q` | Cycle radial menu actions |
-| `F` / `C` | Switch inspector tab to Stats / Config |
+| Open Config (inspector) | Opens config in a modal overlay |
 | `Del` / `Backspace` | Delete selected node |
 | `T` | Submit and start traffic |
-| Right-drag | Pan the camera |
+| Right-drag | Pan the camera (infinite canvas) |
 | Scroll wheel | Zoom in / out |
 | Submit Architecture | Re-run validation and freeze submission snapshot |
 | Start / Pause / Stop | Explicitly control traffic execution lifecycle |
@@ -45,13 +54,14 @@ DevOps Simulator is a **strategy / management game for backend infrastructure co
 
 | Layer | Technology |
 |-------|-----------|
-| Runtime | [Bun](https://bun.sh) |
+| Runtime | Node.js / [Bun](https://bun.sh) |
 | Bundler | [Vite](https://vite.dev) |
 | UI | [React 19](https://react.dev) |
 | Rendering | [Phaser 3](https://phaser.io) (Canvas) |
 | Validation | [Zod 4](https://zod.dev) |
 | Language | TypeScript 5.9 |
 | Icons | AWS Architecture Icons |
+| Deploy | [Netlify](https://netlify.com) |
 
 ## Project Structure
 
@@ -61,23 +71,28 @@ src/
 │   ├── App.tsx             # App shell — layout, state, callbacks
 │   └── ui/
 │       ├── TelemetryPanel.tsx   # Live metrics dashboard
-│       ├── ControlsPanel.tsx    # Submit / start / pause / stop / reset
-│       ├── NodeInspector.tsx    # Stats/config inspector for selected node
-│       ├── ConfigEditor.tsx     # Structured + JSON behavior editor
-│       └── KeyboardLegend.tsx   # Keyboard accessibility legend
+│       ├── ControlsPanel.tsx   # Submit / start / pause / stop / reset
+│       ├── NodeInspector.tsx   # Stats inspector + Open Config
+│       ├── ConfigEditor.tsx    # Structured + JSON behavior editor
+│       ├── ConfigModal.tsx     # Node config overlay modal
+│       ├── ServicePalette.tsx  # Draggable service type palette
+│       ├── ValidationPanel.tsx # Topology validation summary
+│       └── KeyboardLegend.tsx # Keyboard accessibility legend
 ├── game/                   # Phaser rendering layer
 │   ├── PhaserHost.tsx      # React ↔ Phaser bridge
 │   ├── input/
 │   │   ├── keymap.ts       # Central key -> action mapping
-│   │   └── interactionState.ts  # Scene interaction mode state
+│   │   └── interactionState.ts # Scene interaction mode state
 │   ├── iso/
-│   │   └── isoMath.ts      # Isometric grid ↔ screen math
+│   │   └── isoMath.ts      # Isometric grid ↔ screen math (infinite canvas)
 │   ├── render/
+│   │   ├── areaRenderer.ts # Isometric area zones
+│   │   ├── nodeRenderer.ts # Isometric service cards
 │   │   ├── edgeRouting.ts  # Deterministic edge route generation
 │   │   ├── flowArrows.ts   # Directed flow rendering + pulses
-│   │   └── radialMenu.ts   # Radial node action menu
+│   │   └── radialMenu.ts   # Radial node action menu (right-click)
 │   └── scenes/
-│       └── BuildScene.ts   # Grid, nodes, radial UX, drag/keyboard input
+│       └── BuildScene.ts   # Grid, nodes, radial UX, drag ghost, keyboard input
 ├── sim/                    # Simulation layer (pure logic)
 │   ├── types.ts            # Domain types
 │   ├── schemas.ts          # Zod validation schemas
@@ -93,8 +108,19 @@ src/
 │   │   └── topology.ts     # Topology and placement validation rules
 │   └── telemetry/
 │       └── computeTelemetry.ts  # Snapshot → dashboard aggregation
+├── theme/
+│   └── tokens.ts           # Design tokens (canvas, nodes, edges, UI)
 ├── main.tsx                # Entry point
-└── styles.css              # Global dark theme CSS
+└── styles.css              # Global theme and layout
+```
+
+## Deploy
+
+Build and deploy to [Netlify](https://netlify.com) (e.g. with Netlify CLI):
+
+```bash
+npm run build
+ntl deploy --prod --dir dist
 ```
 
 ## Documentation
