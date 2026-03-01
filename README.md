@@ -1,73 +1,87 @@
-# React + TypeScript + Vite
+# DevOps Simulator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A game-like interactive simulator for **software systems design and reliability thinking**. Players visually build distributed software architectures on an isometric grid and watch a tick-based simulation stress-test them in real time.
 
-Currently, two official plugins are available:
+![Level 1 — Standard Stack](docs/assets/level1-screenshot.png)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Quick Start
 
-## React Compiler
-
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+bun install
+bun dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open [http://localhost:5173](http://localhost:5173).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## What Is This?
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+DevOps Simulator is a **strategy / management game for backend infrastructure concepts**:
+
+- **Mode 1 — Build** *(implemented)*: Place infrastructure components (Load Balancer, API Gateway, Cache, Database, Queue, Worker) on an isometric grid. The simulation auto-wires dependencies and runs continuously, showing live telemetry for throughput, latency, error rates, and cost.
+- **Mode 2 — Ops / Incident** *(planned)*: Inherit a degraded system and diagnose + fix it under pressure.
+
+## Controls
+
+| Input | Action |
+|-------|--------|
+| `1`–`6` | Select component type (LB, API, DB, Cache, Queue, Worker) |
+| Left click | Place selected component on grid tile |
+| Right-drag | Pan the camera |
+| Scroll wheel | Zoom in / out |
+| Load Level 1 | Load the preset 6-component architecture |
+| Reset | Clear all nodes and restart simulation |
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Runtime | [Bun](https://bun.sh) |
+| Bundler | [Vite](https://vite.dev) |
+| UI | [React 19](https://react.dev) |
+| Rendering | [Phaser 3](https://phaser.io) (Canvas) |
+| Validation | [Zod 4](https://zod.dev) |
+| Language | TypeScript 5.9 |
+| Icons | AWS Architecture Icons |
+
+## Project Structure
+
 ```
+src/
+├── app/                    # React application layer
+│   ├── App.tsx             # App shell — layout, state, callbacks
+│   └── ui/
+│       ├── TelemetryPanel.tsx   # Live metrics dashboard
+│       └── ControlsPanel.tsx    # Load / Reset buttons
+├── game/                   # Phaser rendering layer
+│   ├── PhaserHost.tsx      # React ↔ Phaser bridge
+│   ├── iso/
+│   │   └── isoMath.ts      # Isometric grid ↔ screen math
+│   └── scenes/
+│       └── BuildScene.ts   # Grid, nodes, edges, camera, input
+├── sim/                    # Simulation layer (pure logic)
+│   ├── types.ts            # Domain types
+│   ├── schemas.ts          # Zod validation schemas
+│   ├── engine/
+│   │   └── SimEngine.ts    # Tick loop, traffic flow, physics
+│   ├── model/
+│   │   ├── nodes.ts        # Node factory + default configs
+│   │   └── graph.ts        # Auto-wiring edge derivation
+│   ├── presets/
+│   │   └── level1.ts       # Starter architecture preset
+│   └── telemetry/
+│       └── computeTelemetry.ts  # Snapshot → dashboard aggregation
+├── main.tsx                # Entry point
+└── styles.css              # Global dark theme CSS
+```
+
+## Documentation
+
+See [`docs/`](docs/) for detailed architecture and design documentation:
+
+- [**Architecture Overview**](docs/architecture.md) — system layers, data flow, key design decisions
+- [**Simulation Model**](docs/simulation-model.md) — tick engine, traffic flow, physics rules
+- [**Extending the Project**](docs/extending.md) — how to add features, new node types, modes
+
+## License
+
+Private — not yet licensed for distribution.
