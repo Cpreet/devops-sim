@@ -1,13 +1,17 @@
 // ── Tick-based simulation engine ────────────────────────────────────────
-import type { SimNode, Edge, SimSnapshot, NodeKind } from '../types';
+import type { SimNode, Edge, SimSnapshot, NodeKind, SimArea, ValidationSnapshot, NodeConfig } from '../types';
 import { createNode, resetNodeIds } from '../model/nodes';
 import { deriveEdges } from '../model/graph';
 import { PlacementInputSchema } from '../schemas';
 import type { LevelPreset } from '../schemas';
+import { validateTopology } from '../validation/topology';
 
 export class SimEngine {
     nodes: SimNode[] = [];
     edges: Edge[] = [];
+    areas: SimArea[] = [];
+    validation: ValidationSnapshot = { isValid: true, issues: [] };
+    selectedNodeId: string | null = null;
     tick = 0;
     trafficRps = 100;
     elapsedSec = 0;
@@ -24,12 +28,16 @@ export class SimEngine {
         const node = createNode(kind, gx, gy);
         this.nodes.push(node);
         this.edges = deriveEdges(this.nodes);
+        this.recomputeValidation();
         return node;
     }
 
     loadPreset(preset: LevelPreset): void {
         this.reset();
         this.trafficRps = preset.trafficRps;
+        if (preset.areas) {
+            this.areas = [...preset.areas];
+        }
         for (const p of preset.nodes) {
             this.addNode(p.kind, p.gx, p.gy);
         }
@@ -38,10 +46,37 @@ export class SimEngine {
     reset(): void {
         this.nodes = [];
         this.edges = [];
+        this.areas = [];
         this.tick = 0;
         this.elapsedSec = 0;
         this.trafficRps = 100;
+        this.selectedNodeId = null;
+        this.recomputeValidation();
         resetNodeIds();
+    }
+
+    // ── config API ────────────────────────────────────────────────────────
+
+    getNodeById(nodeId: string): SimNode | undefined {
+        return this.nodes.find((n) => n.id === nodeId);
+    }
+
+    selectNode(nodeId: string | null): void {
+        this.selectedNodeId = nodeId;
+    }
+
+    updateNodeConfig(nodeId: string, patch: Partial<NodeConfig>): void {
+        const node = this.getNodeById(nodeId);
+        if (node) {
+            node.config = { ...node.config, ...patch };
+            // Changing config might technically change validation if we add more rules,
+            // so we recompute just in case.
+            this.recomputeValidation();
+        }
+    }
+
+    private recomputeValidation(): void {
+        this.validation = validateTopology(this.nodes, this.edges, this.areas);
     }
 
     // ── simulation step ───────────────────────────────────────────────────
@@ -212,6 +247,9 @@ export class SimEngine {
                 state: { ...n.state },
             })),
             edges: [...this.edges],
+            areas: [...this.areas],
+            validation: { ...this.validation, issues: [...this.validation.issues] },
+            selectedNodeId: this.selectedNodeId,
             tick: this.tick,
             trafficRps: this.trafficRps,
             elapsedSec: this.elapsedSec,

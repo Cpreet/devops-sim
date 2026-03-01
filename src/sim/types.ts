@@ -56,6 +56,9 @@ export interface Edge {
 export interface SimSnapshot {
     nodes: SimNode[];
     edges: Edge[];
+    areas: SimArea[];
+    validation: ValidationSnapshot;
+    selectedNodeId: string | null;
     tick: number;
     trafficRps: number;
     elapsedSec: number;
@@ -72,4 +75,48 @@ export interface TelemetrySnapshot {
     dbConns: number;
     queueDepth: number;
     costPerMin: number;
+}
+
+// ── Areas & VPCs ────────────────────────────────────────────────────────
+
+export type AreaKind = 'PUBLIC' | 'APP' | 'DATA' | 'ASYNC';
+
+export interface SimArea {
+    id: string;
+    kind: AreaKind;
+    label: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
+
+// ── Validation ──────────────────────────────────────────────────────────
+
+export type ValidationSeverity = 'info' | 'warning' | 'error';
+
+export type ValidationIssueCode =
+    | 'NO_ENTRYPOINT'
+    | 'NO_API'
+    | 'NO_STORAGE'
+    | 'API_WITHOUT_BACKING'
+    | 'QUEUE_WITHOUT_WORKER'
+    | 'WORKER_WITHOUT_QUEUE'
+    | 'CACHE_WITHOUT_DB'
+    | 'DB_UNREACHABLE'
+    | 'PUBLIC_TO_PRIVATE_VIOLATION'
+    | 'INVALID_DEPENDENCY_DIRECTION'
+    | 'ISOLATED_NODE';
+
+export interface ValidationIssue {
+    id: string;
+    severity: ValidationSeverity;
+    code: ValidationIssueCode;
+    message: string;
+    nodeIds?: string[];
+}
+
+export interface ValidationSnapshot {
+    isValid: boolean;
+    issues: ValidationIssue[];
 }

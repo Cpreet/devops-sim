@@ -73,17 +73,12 @@ const level2Data = {
   trafficRps: 500,
   nodes: [
     { kind: 'LB' as const, gx: 3, gy: 0 },
-    { kind: 'LB' as const, gx: 5, gy: 0 },
-    { kind: 'API' as const, gx: 2, gy: 2 },
-    { kind: 'API' as const, gx: 4, gy: 2 },
-    { kind: 'API' as const, gx: 6, gy: 2 },
-    { kind: 'CACHE' as const, gx: 1, gy: 4 },
-    { kind: 'DB' as const, gx: 5, gy: 4 },
-    { kind: 'DB' as const, gx: 7, gy: 4 },
-    { kind: 'QUEUE' as const, gx: 3, gy: 5 },
-    { kind: 'WORKER' as const, gx: 2, gy: 7 },
-    { kind: 'WORKER' as const, gx: 4, gy: 7 },
+    //...
   ],
+  areas: [
+    { id: 'area-1', kind: 'PUBLIC' as const, label: 'Public Edge', x: 0, y: 0, w: 8, h: 2 },
+    //...
+  ]
 };
 
 export const level2: LevelPreset = LevelPresetSchema.parse(level2Data);
@@ -106,17 +101,16 @@ The `Edge` type already uses node IDs (`{ from: string, to: string }`), which ma
 
 ---
 
-## Adding Node Tuning UI
+## Adding New Validation Rules
 
-Each node has a `NodeConfig` with tunable knobs. To expose these:
+Topology validation runs on every state change. To add a new rule:
 
-1. Add a `NodeInspector.tsx` component in `src/app/ui/`
-2. When a node is selected (clicked in the scene), pass its config to the inspector
-3. The inspector renders sliders/inputs for each relevant knob
-4. On change, update the node's config directly on the `SimEngine` instance
-5. Signal Phaser to reflect changes (if visual)
-
-The config fields are already typed and per-kind defaults exist — the inspector just needs to filter which knobs are relevant per kind.
+1. In `src/sim/types.ts`:
+   - Add the new issue code to `ValidationIssueCode` (e.g., `TOO_MANY_DBS`)
+2. In `src/sim/validation/topology.ts`:
+   - Add the check logic to `validateTopology()`.
+   - Call `addIssue('warning', 'TOO_MANY_DBS', '...', [dbIds])` if the check fails.
+3. The UI (`ValidationPanel.tsx` and `BuildScene.ts`) will automatically reflect the new errors/warnings.
 
 ---
 
