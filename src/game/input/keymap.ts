@@ -1,0 +1,50 @@
+export type GameAction =
+    | 'select-lb'
+    | 'select-api'
+    | 'select-db'
+    | 'select-cache'
+    | 'select-queue'
+    | 'select-worker'
+    | 'cursor-up'
+    | 'cursor-down'
+    | 'cursor-left'
+    | 'cursor-right'
+    | 'confirm'
+    | 'cancel'
+    | 'move-mode'
+    | 'delete-node'
+    | 'open-radial'
+    | 'radial-next'
+    | 'radial-prev'
+    | 'show-stats'
+    | 'show-config'
+    | 'submit-start-traffic';
+
+export const KEY_TO_ACTION: Record<string, GameAction> = {
+    ONE: 'select-lb',
+    TWO: 'select-api',
+    THREE: 'select-db',
+    FOUR: 'select-cache',
+    FIVE: 'select-queue',
+    SIX: 'select-worker',
+    W: 'cursor-up',
+    UP: 'cursor-up',
+    S: 'cursor-down',
+    DOWN: 'cursor-down',
+    A: 'cursor-left',
+    LEFT: 'cursor-left',
+    D: 'cursor-right',
+    RIGHT: 'cursor-right',
+    ENTER: 'confirm',
+    SPACE: 'confirm',
+    ESC: 'cancel',
+    M: 'move-mode',
+    DELETE: 'delete-node',
+    BACKSPACE: 'delete-node',
+    R: 'open-radial',
+    TAB: 'radial-next',
+    Q: 'radial-prev',
+    F: 'show-stats',
+    C: 'show-config',
+    T: 'submit-start-traffic',
+};

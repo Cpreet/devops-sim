@@ -1,8 +1,8 @@
 // ── Isometric math helpers ──────────────────────────────────────────────
 // All visual positions derive from these two functions plus the constants.
 
-export const TILE_W = 80;
-export const TILE_H = 40;
+export const TILE_W = 120;
+export const TILE_H = 60;
 export const GRID_SIZE = 8;
 
 /** Convert grid coords → screen pixel position (centre of diamond). */
