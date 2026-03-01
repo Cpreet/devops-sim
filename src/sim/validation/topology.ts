@@ -1,4 +1,5 @@
-import type { SimNode, Edge, SimArea, ValidationSnapshot, ValidationIssue } from '../types';
+import type { SimNode, Edge, SimArea, ValidationSnapshot, ValidationIssue, NodeKind } from '../types';
+import { ALLOWED_KIND_DIRECTIONS } from '../model/resolveConnections';
 
 let issueIdSeq = 1;
 
@@ -29,7 +30,7 @@ export function validateTopology(
         return { isValid: true, issues: [] };
     }
 
-    const byKind = new Map<string, SimNode[]>();
+    const byKind = new Map<NodeKind, SimNode[]>();
     const nodeById = new Map<string, SimNode>();
     for (const n of nodes) {
         const list = byKind.get(n.kind) || [];
@@ -57,6 +58,24 @@ export function validateTopology(
         outEdges.get(e.from)?.push(e.to);
     }
 
+    // Detect invalid directional edges (future-safe for manual edges)
+    const allowedDirectionalEdges = new Set(ALLOWED_KIND_DIRECTIONS);
+
+    for (const e of edges) {
+        const fromNode = nodeById.get(e.from);
+        const toNode = nodeById.get(e.to);
+        if (!fromNode || !toNode) continue;
+        const key = `${fromNode.kind}->${toNode.kind}` as `${NodeKind}->${NodeKind}`;
+        if (!allowedDirectionalEdges.has(key)) {
+            addIssue(
+                'error',
+                'INVALID_DEPENDENCY_DIRECTION',
+                `Invalid dependency direction: ${fromNode.kind} -> ${toNode.kind}`,
+                [fromNode.id, toNode.id],
+            );
+        }
+    }
+
     // Isolated nodes
     for (const n of nodes) {
         const ins = inEdges.get(n.id)?.length || 0;
@@ -80,13 +99,9 @@ export function validateTopology(
     if (lbs.length > 0 && apis.length === 0) {
         addIssue('error', 'NO_API', 'Load Balancer exists but no API to route traffic to', lbs.map(l => l.id));
     }
-    if (apis.length > 0 && dbs.length === 0 && caches.length === 0 && queues.length === 0) {
-        addIssue('warning', 'API_WITHOUT_BACKING', 'API exists but has no downstream services', apis.map(a => a.id));
-    }
-
-    // DB rules
+    // DB / storage rules
     if (dbs.length === 0) {
-        addIssue('warning', 'NO_STORAGE', 'Architecture has no Database for persistence');
+        addIssue('error', 'NO_STORAGE', 'Architecture has no Database for persistence');
     }
 
     // CACHE - DB rules
@@ -94,9 +109,45 @@ export function validateTopology(
         addIssue('error', 'CACHE_WITHOUT_DB', 'Cache exists but no Database backing it', caches.map(c => c.id));
     }
 
+    // Required persistence paths:
+    //   API -> DB
+    //   API -> CACHE -> DB
+    //   API -> QUEUE -> WORKER -> DB
+    const hasEdgeBetweenKinds = (fromKind: NodeKind, toKind: NodeKind): boolean => {
+        return edges.some((e) => {
+            const fromNode = nodeById.get(e.from);
+            const toNode = nodeById.get(e.to);
+            return fromNode?.kind === fromKind && toNode?.kind === toKind;
+        });
+    };
+
+    const hasApiDbPath =
+        hasEdgeBetweenKinds('API', 'DB') ||
+        (hasEdgeBetweenKinds('API', 'CACHE') && hasEdgeBetweenKinds('CACHE', 'DB')) ||
+        (hasEdgeBetweenKinds('API', 'QUEUE') &&
+            hasEdgeBetweenKinds('QUEUE', 'WORKER') &&
+            hasEdgeBetweenKinds('WORKER', 'DB'));
+
+    if (apis.length > 0 && !hasApiDbPath) {
+        addIssue(
+            'error',
+            'API_WITHOUT_BACKING',
+            'API exists but no persistence path is reachable (API->DB, API->CACHE->DB, or API->QUEUE->WORKER->DB)',
+            apis.map((a) => a.id),
+        );
+    }
+
     // QUEUE - WORKER rules
     if (queues.length > 0 && workers.length === 0) {
-        addIssue('error', 'QUEUE_WITHOUT_WORKER', 'Queue exists but no Worker consuming it', queues.map(q => q.id));
+        const queueHasIngress = queues.some((q) => (inEdges.get(q.id)?.length || 0) > 0);
+        addIssue(
+            queueHasIngress ? 'error' : 'warning',
+            'QUEUE_WITHOUT_WORKER',
+            queueHasIngress
+                ? 'Queue receives routed traffic but no Worker is consuming it'
+                : 'Queue exists but no Worker consuming it',
+            queues.map((q) => q.id),
+        );
     }
     if (workers.length > 0 && queues.length === 0) {
         addIssue('warning', 'WORKER_WITHOUT_QUEUE', 'Worker exists but no Queue feeding it', workers.map(w => w.id));
@@ -130,26 +181,37 @@ export function validateTopology(
         }
     }
 
-    // Determine area boundaries and violations
+    // Determine area boundaries and placement violations
+    const recommendedAreasByKind: Record<NodeKind, ReadonlyArray<SimArea['kind']>> = {
+        LB: ['PUBLIC'],
+        API: ['APP'],
+        DB: ['DATA'],
+        CACHE: ['DATA'],
+        QUEUE: ['ASYNC', 'APP'],
+        WORKER: ['ASYNC', 'APP'],
+    };
+
     for (const n of nodes) {
-        let insideArea: SimArea | undefined;
-        for (const a of areas) {
-            if (n.gx >= a.x && n.gx < a.x + a.w && n.gy >= a.y && n.gy < a.y + a.h) {
-                insideArea = a;
-                break;
-            }
+        const insideArea = areas.find(
+            (a) => n.gx >= a.x && n.gx < a.x + a.w && n.gy >= a.y && n.gy < a.y + a.h,
+        );
+        if (!insideArea) {
+            addIssue(
+                'warning',
+                'PUBLIC_TO_PRIVATE_VIOLATION',
+                `${n.kind} is outside all defined areas`,
+                [n.id],
+            );
+            continue;
         }
-        if (insideArea) {
-            let valid = true;
-            switch (n.kind) {
-                case 'LB': valid = insideArea.kind === 'PUBLIC'; break;
-                // case 'API': valid = insideArea.kind === 'APP'; break;
-                case 'DB': valid = insideArea.kind === 'DATA'; break;
-                // Allow some flex for worker, queues, cache
-            }
-            if (!valid) {
-                addIssue('warning', 'PUBLIC_TO_PRIVATE_VIOLATION', `${n.kind} placed in unrecommended zone (${insideArea.kind})`, [n.id]);
-            }
+
+        if (!recommendedAreasByKind[n.kind].includes(insideArea.kind)) {
+            addIssue(
+                'warning',
+                'PUBLIC_TO_PRIVATE_VIOLATION',
+                `${n.kind} placed in unrecommended zone (${insideArea.kind})`,
+                [n.id],
+            );
         }
     }
 

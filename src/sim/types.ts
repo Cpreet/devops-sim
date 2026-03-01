@@ -24,6 +24,31 @@ export interface NodeConfig {
     costPerMin: number;
 }
 
+export type RoutingMode = 'auto' | 'explicit';
+export type RoutingFallback = 'auto' | 'none';
+
+export interface NodeRoutingConfig {
+    mode: RoutingMode;
+    targetNodeIds: string[];
+    fallback: RoutingFallback;
+    queueWeightPct: number; // 0-1, API background traffic split
+    workerDbWritePct: number; // 0-1, worker output written to DB
+}
+
+export interface NodeDependencyConfig {
+    preferredNodeIds: string[];
+}
+
+export interface NodePolicyConfig {
+    dropOnInvalidTargets: boolean;
+}
+
+export interface NodeBehaviorConfig {
+    routing: NodeRoutingConfig;
+    dependencies: NodeDependencyConfig;
+    policies: NodePolicyConfig;
+}
+
 /** Runtime metrics for a node during simulation. */
 export interface NodeState {
     inRps: number;
@@ -43,6 +68,8 @@ export interface SimNode {
     gx: number;
     gy: number;
     config: NodeConfig;
+    behavior: NodeBehaviorConfig;
+    scriptText?: string;
     state: NodeState;
 }
 
@@ -62,6 +89,12 @@ export interface SimSnapshot {
     tick: number;
     trafficRps: number;
     elapsedSec: number;
+    runState: ArchitectureRunState;
+    submissionState: SubmissionState;
+    isDirty: boolean;
+    trafficActive: boolean;
+    lastSubmitAtTick: number | null;
+    lastSubmission: SubmissionResult | null;
 }
 
 /** Aggregated metrics for the React telemetry panel. */
@@ -119,4 +152,13 @@ export interface ValidationIssue {
 export interface ValidationSnapshot {
     isValid: boolean;
     issues: ValidationIssue[];
+}
+
+export type ArchitectureRunState = 'build' | 'review' | 'running' | 'paused' | 'stopped';
+export type SubmissionState = 'clean' | 'dirty' | 'validated' | 'invalid';
+
+export interface SubmissionResult {
+    accepted: boolean;
+    blockingIssueIds: string[];
+    degradationIssueIds: string[];
 }
