@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "icons": "bun run scripts/extract-icons.ts",
-    "screenshot": "node scripts/screenshot.mjs"
+    "screenshot": "bun run scripts/screenshot.mjs"
   },
   "dependencies": {
     "@isoflow/isopacks": "^0.0.10",
