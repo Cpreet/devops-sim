@@ -29,7 +29,7 @@ export function PhaserHost({ engine, onSnapshot, onRadialAction, redrawToken }: 
             parent: containerRef.current,
             width: Math.floor(rect.width),
             height: Math.floor(rect.height),
-            backgroundColor: '#0d0d1a',
+            backgroundColor: '#f0f2f6',
             scene: [],
             scale: {
                 mode: Phaser.Scale.RESIZE,

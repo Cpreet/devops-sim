@@ -37,11 +37,17 @@ export function ConfigEditor({ node, onUpdateBehavior, onUpdateScript }: Props) 
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', gap: '6px' }}>
-                <button className="btn btn-ghost" style={{ padding: '4px 6px' }} onClick={() => setMode('structured')}>
+            <div className="inspector-tabs" style={{ marginBottom: '4px' }}>
+                <button
+                    className={`inspector-tab${mode === 'structured' ? ' inspector-tab--active' : ''}`}
+                    onClick={() => setMode('structured')}
+                >
                     Structured
                 </button>
-                <button className="btn btn-ghost" style={{ padding: '4px 6px' }} onClick={() => setMode('json')}>
+                <button
+                    className={`inspector-tab${mode === 'json' ? ' inspector-tab--active' : ''}`}
+                    onClick={() => setMode('json')}
+                >
                     JSON
                 </button>
             </div>
@@ -52,7 +58,7 @@ export function ConfigEditor({ node, onUpdateBehavior, onUpdateScript }: Props) 
                         <label className="metric-label">Routing Mode</label>
                         <select
                             className="inspector-input"
-                            style={{ width: '110px' }}
+                            style={{ width: '100px' }}
                             value={node.behavior.routing.mode}
                             onChange={(e) =>
                                 onUpdateBehavior(node.id, {
@@ -68,10 +74,10 @@ export function ConfigEditor({ node, onUpdateBehavior, onUpdateScript }: Props) 
                         </select>
                     </div>
                     <div className="metric-row">
-                        <label className="metric-label">Routing Targets</label>
+                        <label className="metric-label">Targets</label>
                         <input
                             className="inspector-input"
-                            style={{ width: '140px', textAlign: 'left' }}
+                            style={{ width: '120px', textAlign: 'left' }}
                             value={targetIds}
                             onChange={(e) => setTargetIds(e.target.value)}
                             onBlur={() =>
@@ -88,7 +94,7 @@ export function ConfigEditor({ node, onUpdateBehavior, onUpdateScript }: Props) 
                         <label className="metric-label">Fallback</label>
                         <select
                             className="inspector-input"
-                            style={{ width: '110px' }}
+                            style={{ width: '100px' }}
                             value={node.behavior.routing.fallback}
                             onChange={(e) =>
                                 onUpdateBehavior(node.id, {
@@ -104,7 +110,7 @@ export function ConfigEditor({ node, onUpdateBehavior, onUpdateScript }: Props) 
                         </select>
                     </div>
                     <div className="metric-row">
-                        <label className="metric-label">Queue Weight %</label>
+                        <label className="metric-label">Queue Wt %</label>
                         <input
                             type="number"
                             className="inspector-input"
@@ -120,7 +126,7 @@ export function ConfigEditor({ node, onUpdateBehavior, onUpdateScript }: Props) 
                         />
                     </div>
                     <div className="metric-row">
-                        <label className="metric-label">Worker to DB %</label>
+                        <label className="metric-label">Worker DB %</label>
                         <input
                             type="number"
                             className="inspector-input"
@@ -136,10 +142,10 @@ export function ConfigEditor({ node, onUpdateBehavior, onUpdateScript }: Props) 
                         />
                     </div>
                     <div className="metric-row">
-                        <label className="metric-label">Preferred Deps</label>
+                        <label className="metric-label">Pref. Deps</label>
                         <input
                             className="inspector-input"
-                            style={{ width: '140px', textAlign: 'left' }}
+                            style={{ width: '120px', textAlign: 'left' }}
                             value={preferredIds}
                             onChange={(e) => setPreferredIds(e.target.value)}
                             onBlur={() =>
@@ -152,7 +158,7 @@ export function ConfigEditor({ node, onUpdateBehavior, onUpdateScript }: Props) 
                         />
                     </div>
                     <div className="metric-row">
-                        <label className="metric-label">Drop Invalid Targets</label>
+                        <label className="metric-label">Drop Invalid</label>
                         <input
                             type="checkbox"
                             checked={node.behavior.policies.dropOnInvalidTargets}
@@ -163,6 +169,7 @@ export function ConfigEditor({ node, onUpdateBehavior, onUpdateScript }: Props) 
                                     },
                                 })
                             }
+                            style={{ width: '16px', height: '16px', accentColor: '#2979FF' }}
                         />
                     </div>
                 </>
@@ -180,8 +187,8 @@ export function ConfigEditor({ node, onUpdateBehavior, onUpdateScript }: Props) 
                         value={script}
                         onChange={(e) => setScript(e.target.value)}
                     />
-                    {scriptError && <div style={{ color: '#c0675a', fontSize: '11px' }}>{scriptError}</div>}
-                    <button className="btn btn-ghost" onClick={applyScript}>
+                    {scriptError && <div style={{ color: '#E53935', fontSize: '11px' }}>{scriptError}</div>}
+                    <button className="btn btn-primary" onClick={applyScript}>
                         Apply Script
                     </button>
                 </>

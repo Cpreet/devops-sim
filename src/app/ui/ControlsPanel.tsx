@@ -1,5 +1,3 @@
-// ── Controls Panel — Industrial Style ───────────────────────────────────
-
 interface Props {
     onLoadLevel1: () => void;
     onReset: () => void;
@@ -24,7 +22,7 @@ export function ControlsPanel({
     return (
         <div className="panel controls-panel">
             <h3 className="panel-title">Controls</h3>
-            <button className="btn btn-ghost" onClick={onSubmit}>
+            <button className="btn btn-primary" onClick={onSubmit}>
                 Submit Architecture
             </button>
             <button className="btn btn-ghost" onClick={onStartPause}>
@@ -36,11 +34,11 @@ export function ControlsPanel({
             <button className="btn btn-ghost" onClick={onLoadLevel1}>
                 Load Level 1
             </button>
-            <button className="btn btn-ghost btn-warm" onClick={onReset}>
+            <button className="btn btn-warm" onClick={onReset}>
                 Reset
             </button>
-            <div style={{ fontSize: '10px', color: '#6a7a9a', marginTop: '4px' }}>
-                State: {runState} {isDirty ? '• dirty' : '• clean'}
+            <div className="state-line">
+                {runState} · {isDirty ? 'dirty' : 'clean'}
             </div>
         </div>
     );
