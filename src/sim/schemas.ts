@@ -1,6 +1,5 @@
 // ── Zod schemas for runtime validation ──────────────────────────────────
 import { z } from 'zod';
-import { GRID_SIZE } from '../game/iso/isoMath';
 
 // ── Node kinds ──────────────────────────────────────────────────────────
 
@@ -12,8 +11,8 @@ const RoutingFallbackSchema = z.enum(['auto', 'none']);
 
 export const PlacementInputSchema = z.object({
     kind: NodeKindSchema,
-    gx: z.number().int().min(0).max(GRID_SIZE - 1),
-    gy: z.number().int().min(0).max(GRID_SIZE - 1),
+    gx: z.number().int(),
+    gy: z.number().int(),
 });
 
 export type PlacementInput = z.infer<typeof PlacementInputSchema>;
@@ -22,8 +21,8 @@ export type PlacementInput = z.infer<typeof PlacementInputSchema>;
 
 const PresetNodeSchema = z.object({
     kind: NodeKindSchema,
-    gx: z.number().int().min(0).max(GRID_SIZE - 1),
-    gy: z.number().int().min(0).max(GRID_SIZE - 1),
+    gx: z.number().int(),
+    gy: z.number().int(),
 });
 
 const AreaKindSchema = z.enum(['PUBLIC', 'APP', 'DATA', 'ASYNC']);

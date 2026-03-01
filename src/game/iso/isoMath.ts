@@ -1,8 +1,8 @@
 // ── Isometric math helpers ──────────────────────────────────────────────
 // All visual positions derive from these two functions plus the constants.
 
-export const TILE_W = 120;
-export const TILE_H = 60;
+export const TILE_W = 160;
+export const TILE_H = 80;
 export const GRID_SIZE = 8;
 
 /** Convert grid coords → screen pixel position (centre of diamond). */
@@ -33,7 +33,7 @@ export function screenToGrid(
   };
 }
 
-/** True when `(gx, gy)` falls inside the grid. */
-export function inBounds(gx: number, gy: number): boolean {
-  return gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE;
+/** Always true — the canvas is infinite. */
+export function inBounds(_gx: number, _gy: number): boolean {
+  return true;
 }
