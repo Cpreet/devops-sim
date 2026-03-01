@@ -1,9 +1,10 @@
-// ── App Shell ───────────────────────────────────────────────────────────
 import { useCallback, useRef, useState } from 'react';
 import { PhaserHost } from '../game/PhaserHost';
 import { TelemetryPanel } from './ui/TelemetryPanel';
 import { ControlsPanel } from './ui/ControlsPanel';
-import { NodeInspector, type InspectorTab } from './ui/NodeInspector';
+import { ServicePalette } from './ui/ServicePalette';
+import { NodeInspector } from './ui/NodeInspector';
+import { ConfigModal } from './ui/ConfigModal';
 import { ValidationPanel } from './ui/ValidationPanel';
 import { KeyboardLegend } from './ui/KeyboardLegend';
 import { SimEngine } from '../sim/engine/SimEngine';
@@ -32,21 +33,12 @@ const EMPTY_TELEMETRY: TelemetrySnapshot = {
     costPerMin: 0,
 };
 
-const KEYBINDS: Array<{ key: string; label: string; color: string }> = [
-    { key: '1', label: 'LB', color: '#4a9ebb' },
-    { key: '2', label: 'API', color: '#5a9e6f' },
-    { key: '3', label: 'DB', color: '#c0675a' },
-    { key: '4', label: 'CACHE', color: '#c49a3c' },
-    { key: '5', label: 'QUEUE', color: '#8a6aad' },
-    { key: '6', label: 'WORKER', color: '#8a8fa0' },
-];
-
 export default function App() {
     const [engine] = useState<SimEngine>(() => new SimEngine());
     const [telemetry, setTelemetry] = useState<TelemetrySnapshot>(EMPTY_TELEMETRY);
     const [selectedNode, setSelectedNode] = useState<SimNode | null>(null);
     const [selectedAreaLabel, setSelectedAreaLabel] = useState<string | null>(null);
-    const [inspectorTab, setInspectorTab] = useState<InspectorTab>('stats');
+    const [configModalNode, setConfigModalNode] = useState<SimNode | null>(null);
     const [validation, setValidation] = useState<ValidationSnapshot>({ isValid: true, issues: [] });
     const [runState, setRunState] = useState<SimSnapshot['runState']>('build');
     const [submissionState, setSubmissionState] = useState<SimSnapshot['submissionState']>('clean');
@@ -61,21 +53,20 @@ export default function App() {
             const found = snap.nodes.find((n) => n.id === snap.selectedNodeId) || null;
             setSelectedNode(found);
             if (found) {
-                const area = snap.areas.find(
-                    (a) =>
-                        found.gx >= a.x &&
-                        found.gx < a.x + a.w &&
-                        found.gy >= a.y &&
-                        found.gy < a.y + a.h,
+                const a = snap.areas.find(
+                    (ar) =>
+                        found.gx >= ar.x &&
+                        found.gx < ar.x + ar.w &&
+                        found.gy >= ar.y &&
+                        found.gy < ar.y + ar.h,
                 );
-                setSelectedAreaLabel(area ? `${area.label} (${area.kind})` : 'Unassigned');
+                setSelectedAreaLabel(a ? `${a.label} (${a.kind})` : 'Unassigned');
             } else {
                 setSelectedAreaLabel(null);
             }
         } else {
             setSelectedNode(null);
             setSelectedAreaLabel(null);
-            setInspectorTab('stats');
         }
 
         const now = performance.now();
@@ -112,7 +103,6 @@ export default function App() {
         engine.selectNode(null);
         setSelectedNode(null);
         setSelectedAreaLabel(null);
-        setInspectorTab('stats');
         setRunState('build');
         setSubmissionState('clean');
         setIsDirty(false);
@@ -130,9 +120,12 @@ export default function App() {
     }, [engine]);
 
     const handleRadialAction = useCallback((action: RadialAction) => {
-        if (action === 'stats') setInspectorTab('stats');
-        if (action === 'config') setInspectorTab('config');
-    }, []);
+        if (action === 'config') {
+            const snap = engine.getSnapshot();
+            const node = snap.nodes.find((n) => n.id === snap.selectedNodeId);
+            if (node) setConfigModalNode(node);
+        }
+    }, [engine]);
 
     const handleSubmit = useCallback(() => {
         engine.submitArchitecture();
@@ -154,24 +147,27 @@ export default function App() {
         setRedrawToken((t) => t + 1);
     }, [engine]);
 
+    const runBadgeClass =
+        runState === 'running'
+            ? 'header-badge header-badge--running'
+            : runState === 'build'
+                ? 'header-badge header-badge--build'
+                : 'header-badge header-badge--build';
+
     return (
         <div className="app-shell">
             <header className="app-header">
                 <h1>DevOps Simulator</h1>
-                <span className="header-sub">Mode 1 — Build</span>
+                <span className={runBadgeClass}>{runState.toUpperCase()}</span>
+                {isDirty && <span className="header-badge header-badge--error">DIRTY</span>}
+                <span className="header-sub" style={{ marginLeft: 'auto' }}>
+                    {submissionState} · {trafficActive ? 'traffic active' : 'traffic stopped'}
+                </span>
             </header>
 
             <main className="app-main">
-                <div className="canvas-area">
-                    <PhaserHost
-                        engine={engine}
-                        onSnapshot={handleSnapshot}
-                        onRadialAction={handleRadialAction}
-                        redrawToken={redrawToken}
-                    />
-                </div>
-
-                <aside className="sidebar">
+                <aside className="left-rail">
+                    <ServicePalette />
                     <TelemetryPanel
                         telemetry={telemetry}
                         validation={validation}
@@ -191,23 +187,40 @@ export default function App() {
                         isDirty={isDirty}
                         trafficActive={trafficActive}
                     />
-                    <KeyboardLegend keybinds={KEYBINDS} />
                 </aside>
+
+                <div className="canvas-area">
+                    <PhaserHost
+                        engine={engine}
+                        onSnapshot={handleSnapshot}
+                        onRadialAction={handleRadialAction}
+                        redrawToken={redrawToken}
+                    />
+                </div>
+
                 {selectedNode && (
-                    <aside className="sidebar inspector-sidebar" style={{ width: '260px' }}>
+                    <aside className="inspector-sidebar">
                         <NodeInspector
                             node={selectedNode}
                             areaLabel={selectedAreaLabel}
-                            activeTab={inspectorTab}
-                            onTabChange={setInspectorTab}
-                            onUpdateConfig={handleUpdateConfig}
-                            onUpdateBehavior={handleUpdateBehavior}
-                            onUpdateScript={handleUpdateScript}
+                            onOpenConfig={() => setConfigModalNode(selectedNode)}
                             onClose={handleCloseInspector}
                         />
                     </aside>
                 )}
             </main>
+
+            <KeyboardLegend />
+
+            {configModalNode && (
+                <ConfigModal
+                    node={configModalNode}
+                    onUpdateConfig={handleUpdateConfig}
+                    onUpdateBehavior={handleUpdateBehavior}
+                    onUpdateScript={handleUpdateScript}
+                    onClose={() => setConfigModalNode(null)}
+                />
+            )}
         </div>
     );
 }
