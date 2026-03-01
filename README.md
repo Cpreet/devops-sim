@@ -2,9 +2,12 @@
 
 A game-like interactive simulator for **software systems design and reliability thinking**. Players build distributed architectures on an isometric grid, configure service behavior, validate topology, and explicitly submit/start traffic runs.
 
-**Live demo:** [https://devops-sim.netlify.app](https://devops-sim.netlify.app)
+[![Live demo](https://img.shields.io/badge/demo-live-success?style=flat-square)](https://devops-sim.netlify.app) [![Netlify](https://img.shields.io/badge/Netlify-deployed-00C7B7?style=flat-square&logo=netlify)](https://devops-sim.netlify.app)
+
+**[→ Open live deployment](https://devops-sim.netlify.app)**
 
 ![Level 1 — Standard Stack](docs/assets/level1-screenshot.png)
+*Isometric build view — [try it live](https://devops-sim.netlify.app)*
 
 ## Quick Start
 
