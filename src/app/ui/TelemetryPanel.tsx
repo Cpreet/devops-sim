@@ -1,6 +1,4 @@
-// ── Telemetry Panel — Monitoring Dashboard ──────────────────────────────
-import type { TelemetrySnapshot } from '../../sim/types';
-import type { ValidationSnapshot } from '../../sim/types';
+import type { TelemetrySnapshot, ValidationSnapshot } from '../../sim/types';
 
 interface Props {
     telemetry: TelemetrySnapshot;
@@ -20,9 +18,15 @@ function getHealth(errorRatePct: number, p95ms: number): HealthLevel {
 }
 
 const healthColors: Record<HealthLevel, string> = {
-    ok: '#5a9e6f',
-    warn: '#c49a3c',
-    crit: '#c0675a',
+    ok: '#43A047',
+    warn: '#F9A825',
+    crit: '#E53935',
+};
+
+const healthValueColors: Record<HealthLevel, string | undefined> = {
+    ok: undefined,
+    warn: '#F9A825',
+    crit: '#E53935',
 };
 
 function Metric({
@@ -49,12 +53,10 @@ function Metric({
             </span>
             <span
                 className="metric-value"
-                style={
-                    health === 'crit' ? { color: '#c0675a' } : health === 'warn' ? { color: '#c49a3c' } : undefined
-                }
+                style={healthValueColors[health ?? 'ok'] ? { color: healthValueColors[health ?? 'ok'] } : undefined}
             >
                 {value}
-                {unit && <span className="metric-unit"> {unit}</span>}
+                {unit && <span className="metric-unit">{unit}</span>}
             </span>
         </div>
     );
@@ -87,20 +89,11 @@ export function TelemetryPanel({
             <h3 className="panel-title">Telemetry</h3>
             <Metric label="Sim Time" value={t.simTimeSec.toFixed(1)} unit="s" />
             <Metric label="Architecture" value={architectureLabel} health={architectureHealth} />
-            <Metric label="Run State" value={runState} />
-            <Metric label="Submission" value={submissionState} />
-            <Metric label="Traffic" value={trafficActive ? 'active' : 'stopped'} />
-            <Metric label="Dirty" value={isDirty ? 'yes' : 'no'} />
             <div className="metric-divider" />
             <Metric label="Input RPS" value={t.inputRps} health={health} />
             <Metric label="Success RPS" value={t.successRps} health={health} />
             <Metric label="Error RPS" value={t.errorRps} health={health} />
-            <Metric
-                label="Error Rate"
-                value={t.errorRatePct.toFixed(1)}
-                unit="%"
-                health={health}
-            />
+            <Metric label="Error Rate" value={t.errorRatePct.toFixed(1)} unit="%" health={health} />
             <div className="metric-divider" />
             <Metric label="p95 Latency" value={t.p95ms.toFixed(1)} unit="ms" health={health} />
             <Metric label="DB Conns" value={t.dbConns} />

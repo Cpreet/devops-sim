@@ -1,18 +1,11 @@
 import * as Phaser from 'phaser';
 import type { SimSnapshot } from '../../sim/types';
 import { buildEdgeRoute, routeToScreen, samplePointOnRoute } from './edgeRouting';
-
-const EDGE_GLOW_COLOR = 0x4fc3f7;
-const EDGE_COLOR = 0x4a5a8a;
-const WARNING_COLOR = 0xc49a3c;
-const ERROR_COLOR = 0xc0675a;
-const ACTIVE_COLOR = 0x69d1ff;
+import { edge as edgeTokens, node as nodeTokens } from '../../theme/tokens';
 
 type EdgeStyle = {
     color: number;
-    glowColor: number;
-    coreAlpha: number;
-    glowAlpha: number;
+    alpha: number;
     width: number;
 };
 
@@ -22,35 +15,27 @@ function resolveEdgeStyle(
     isActive: boolean,
     isSelected: boolean,
 ): EdgeStyle {
-    let color = EDGE_COLOR;
-    let glowColor = EDGE_GLOW_COLOR;
-    let coreAlpha = 0.65;
-    let glowAlpha = 0.15;
-    let width = 1.5;
+    let color = edgeTokens.default.color;
+    let alpha = edgeTokens.default.alpha;
+    let width = edgeTokens.default.width;
 
     if (hasError) {
-        color = ERROR_COLOR;
-        glowColor = ERROR_COLOR;
-        coreAlpha = 0.8;
-        glowAlpha = 0.25;
+        color = edgeTokens.error.color;
+        alpha = edgeTokens.error.alpha;
     } else if (hasWarning) {
-        color = WARNING_COLOR;
-        glowColor = WARNING_COLOR;
-        coreAlpha = 0.75;
-        glowAlpha = 0.22;
+        color = edgeTokens.warning.color;
+        alpha = edgeTokens.warning.alpha;
     } else if (isActive) {
-        color = ACTIVE_COLOR;
-        glowColor = ACTIVE_COLOR;
-        coreAlpha = 0.8;
-        glowAlpha = 0.2;
+        color = edgeTokens.active.color;
+        alpha = edgeTokens.active.alpha;
     }
 
     if (isSelected) {
-        width = 2.2;
-        coreAlpha = Math.min(1, coreAlpha + 0.15);
+        width += edgeTokens.selected.widthAdd;
+        alpha = Math.min(1, alpha + edgeTokens.selected.alphaAdd);
     }
 
-    return { color, glowColor, coreAlpha, glowAlpha, width };
+    return { color, alpha, width };
 }
 
 function drawPolyline(gfx: Phaser.GameObjects.Graphics, points: Array<{ x: number; y: number }>): void {
@@ -67,6 +52,7 @@ function drawArrowHead(
     gfx: Phaser.GameObjects.Graphics,
     points: Array<{ x: number; y: number }>,
     color: number,
+    alpha: number,
 ): void {
     if (points.length < 2) return;
     const tip = points[points.length - 1];
@@ -80,19 +66,19 @@ function drawArrowHead(
     const ny = dy / len;
     const px = -ny;
     const py = nx;
-    const size = 6;
-    const offset = 12;
+    const size = edgeTokens.arrowSize;
+    const offset = edgeTokens.arrowOffset;
     const ax = tip.x - nx * offset;
     const ay = tip.y - ny * offset;
 
-    gfx.fillStyle(color, 0.95);
+    gfx.fillStyle(color, alpha);
     gfx.fillTriangle(
         ax,
         ay,
-        ax - nx * size + px * size * 0.55,
-        ay - ny * size + py * size * 0.55,
-        ax - nx * size - px * size * 0.55,
-        ay - ny * size - py * size * 0.55,
+        ax - nx * size + px * size * 0.5,
+        ay - ny * size + py * size * 0.5,
+        ax - nx * size - px * size * 0.5,
+        ay - ny * size - py * size * 0.5,
     );
 }
 
@@ -123,12 +109,16 @@ export function drawFlowEdges(
         const route = buildEdgeRoute(from, to, snap.areas);
         const screenPoints = routeToScreen(route, originX, originY);
 
-        gfx.lineStyle(style.width + 2, style.glowColor, style.glowAlpha);
+        // Shadow line for depth
+        gfx.lineStyle(style.width + edgeTokens.shadow.widthAdd, edgeTokens.shadow.color, edgeTokens.shadow.alpha);
         drawPolyline(gfx, screenPoints);
 
-        gfx.lineStyle(style.width, style.color, style.coreAlpha);
+        // Core line
+        gfx.lineStyle(style.width, style.color, style.alpha);
         drawPolyline(gfx, screenPoints);
-        drawArrowHead(gfx, screenPoints, style.color);
+
+        // Arrowhead
+        drawArrowHead(gfx, screenPoints, style.color, style.alpha);
     }
 }
 
@@ -156,13 +146,21 @@ export function drawFlowPulses(
         const speed = 0.0008 * (1 + Math.log10(flowRate + 1));
         const pulseCount = Math.min(4, Math.max(1, Math.floor(Math.log10(flowRate + 1))));
 
+        const pulseColor = nodeTokens[from.kind]?.base ?? edgeTokens.active.color;
+
         for (let i = 0; i < pulseCount; i++) {
             const phase = i / pulseCount;
             const t = (time * speed + phase) % 1;
             const p = samplePointOnRoute(screenPoints, t);
             if (!p) continue;
-            gfx.fillStyle(0xffffff, 0.8);
-            gfx.fillCircle(p.x, p.y, 2.2);
+
+            // Subtle trailing halo
+            gfx.fillStyle(pulseColor, edgeTokens.pulse.alpha * 0.3);
+            gfx.fillCircle(p.x, p.y, edgeTokens.pulse.radius * 1.8);
+
+            // Core pulse
+            gfx.fillStyle(pulseColor, edgeTokens.pulse.alpha);
+            gfx.fillCircle(p.x, p.y, edgeTokens.pulse.radius);
         }
     }
 }
