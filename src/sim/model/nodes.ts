@@ -1,5 +1,5 @@
 // ── Node factory & default configs ──────────────────────────────────────
-import type { NodeKind, NodeConfig, NodeState, SimNode } from '../types';
+import type { NodeKind, NodeConfig, NodeState, SimNode, NodeBehaviorConfig } from '../types';
 
 let nextId = 1;
 
@@ -97,6 +97,25 @@ export function defaultConfigFor(kind: NodeKind): NodeConfig {
     }
 }
 
+export function defaultBehaviorFor(kind: NodeKind): NodeBehaviorConfig {
+    void kind;
+    return {
+        routing: {
+            mode: 'auto',
+            targetNodeIds: [],
+            fallback: 'auto',
+            queueWeightPct: 0.3,
+            workerDbWritePct: 0.5,
+        },
+        dependencies: {
+            preferredNodeIds: [],
+        },
+        policies: {
+            dropOnInvalidTargets: false,
+        },
+    };
+}
+
 export function createNode(kind: NodeKind, gx: number, gy: number): SimNode {
     return {
         id: `node-${nextId++}`,
@@ -104,6 +123,7 @@ export function createNode(kind: NodeKind, gx: number, gy: number): SimNode {
         gx,
         gy,
         config: defaultConfigFor(kind),
+        behavior: defaultBehaviorFor(kind),
         state: freshState(),
     };
 }
